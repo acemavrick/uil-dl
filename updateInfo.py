@@ -91,6 +91,8 @@ for key in titleToLevel:
                     continue
         else:
             cleanedTitleToLevel[key] = val[0]
+# inverse
+cleanedTitleToLevel = {v:k for k, v in cleanedTitleToLevel.items()}
 print(f"Cleaned level abbreviations. {conflicts} conflicts found.")
 
 # cross check with existing (if existing) data and update.
@@ -170,5 +172,5 @@ input("Press Enter to continue with building the database, Ctrl+c to quit. ")
 print()
 
 # execute databasebuilding
-with open('buildDB.py', 'r') as f:
-    exec(f.read())
+import buildDB
+buildDB.create_database("info.json", "info.db")
