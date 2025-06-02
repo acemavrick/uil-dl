@@ -398,3 +398,5 @@ pyrightconfig.json
 
 # End of https://www.toptal.com/developers/gitignore/api/python,flask,node
 *.db
+
+tailwind.config.js

@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UIL Downloads</title>
+    <script src="{{ url_for('static', filename='js/htmx.min.js') }}"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/out.css') }}">
+</head>
+<body class="min-h-screen bg-gray-100 dark:bg-gray-900">
+    <div class="container mx-auto px-4 py-8">
+        <header class="mb-8">
+            <h1 class="text-3xl font-bold text-center text-emerald-800 dark:text-emerald-400">
+                UIL Academic Contest Downloads
+            </h1>
+        </header>
+
+        <div class="flex flex-col md:flex-row gap-6">
+            <!-- Left sidebar with filters -->
+            <div class="md:w-1/4">
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 mb-6">
+                    <h2 class="text-lg font-medium mb-4 text-gray-700 dark:text-gray-300">Filters</h2>
+                    
+                    <div class="space-y-5">
+                        <!-- Subject filter multiselect -->
+                        <div class="filter-group">
+                            <label for="subject-filter-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Subjects</label>
+                            <div class="relative filter-multiselect" id="subject-filter-container">
+                                <div class="flex items-center border border-gray-300 dark:border-gray-600 rounded-md">
+                                    <input type="text" id="subject-filter-input" placeholder="Search subjects..." class="w-full rounded-md border-0 shadow-none focus:ring-0 dark:bg-gray-700 dark:text-white px-3 py-2">
+                                    <div class="dropdown-toggle pr-2 text-gray-500 cursor-pointer">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="hidden absolute z-10 mt-1 w-full bg-white dark:bg-gray-700 shadow-lg rounded-md py-1 max-h-60 overflow-auto border border-gray-200 dark:border-gray-600" id="subject-filter-dropdown">
+                                    <div class="px-3 py-2 border-b border-gray-200 dark:border-gray-600 sticky top-0 bg-white dark:bg-gray-700">
+                                        <div class="flex items-center">
+                                            <input type="checkbox" id="subject-select-all" class="select-all-checkbox h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded">
+                                            <label for="subject-select-all" class="ml-2 text-sm text-gray-700 dark:text-gray-300 font-medium">Select All</label>
+                                        </div>
+                                    </div>
+                                    <div id="subject-options" class="py-1">
+                                        {% for subject in subjects|default([]) %}
+                                        <div class="px-3 py-1 hover:bg-gray-100 dark:hover:bg-gray-600">
+                                            <div class="flex items-center">
+                                                <input type="checkbox" id="subject-{{ loop.index }}" value="{{ subject }}" class="subject-option h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded">
+                                                <label for="subject-{{ loop.index }}" class="ml-2 text-sm text-gray-700 dark:text-gray-300">{{ subject }}</label>
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                <div class="flex flex-wrap gap-2 mt-2" id="subject-selected-tags"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Level filter multiselect -->
+                        <div class="filter-group">
+                            <label for="level-filter-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Levels</label>
+                            <div class="relative filter-multiselect" id="level-filter-container">
+                                <div class="flex items-center border border-gray-300 dark:border-gray-600 rounded-md">
+                                    <input type="text" id="level-filter-input" placeholder="Search levels..." class="w-full rounded-md border-0 shadow-none focus:ring-0 dark:bg-gray-700 dark:text-white px-3 py-2">
+                                    <div class="dropdown-toggle pr-2 text-gray-500 cursor-pointer">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="hidden absolute z-10 mt-1 w-full bg-white dark:bg-gray-700 shadow-lg rounded-md py-1 max-h-60 overflow-auto border border-gray-200 dark:border-gray-600" id="level-filter-dropdown">
+                                    <div class="px-3 py-2 border-b border-gray-200 dark:border-gray-600 sticky top-0 bg-white dark:bg-gray-700">
+                                        <div class="flex items-center">
+                                            <input type="checkbox" id="level-select-all" class="select-all-checkbox h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded">
+                                            <label for="level-select-all" class="ml-2 text-sm text-gray-700 dark:text-gray-300 font-medium">Select All</label>
+                                        </div>
+                                    </div>
+                                    <div id="level-options" class="py-1">
+                                        {% for level in levels|default([]) %}
+                                        <div class="px-3 py-1 hover:bg-gray-100 dark:hover:bg-gray-600">
+                                            <div class="flex items-center">
+                                                <input type="checkbox" id="level-{{ loop.index }}" value="{{ level }}" class="level-option h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded">
+                                                <label for="level-{{ loop.index }}" class="ml-2 text-sm text-gray-700 dark:text-gray-300">{{ level }}</label>
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                <div class="flex flex-wrap gap-2 mt-2" id="level-selected-tags"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Year filter multiselect -->
+                        <div class="filter-group">
+                            <label for="year-filter-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Years</label>
+                            <div class="relative filter-multiselect" id="year-filter-container">
+                                <div class="flex items-center border border-gray-300 dark:border-gray-600 rounded-md">
+                                    <input type="text" id="year-filter-input" placeholder="Search years..." class="w-full rounded-md border-0 shadow-none focus:ring-0 dark:bg-gray-700 dark:text-white px-3 py-2">
+                                    <div class="dropdown-toggle pr-2 text-gray-500 cursor-pointer">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="hidden absolute z-10 mt-1 w-full bg-white dark:bg-gray-700 shadow-lg rounded-md py-1 max-h-60 overflow-auto border border-gray-200 dark:border-gray-600" id="year-filter-dropdown">
+                                    <div class="px-3 py-2 border-b border-gray-200 dark:border-gray-600 sticky top-0 bg-white dark:bg-gray-700">
+                                        <div class="flex items-center">
+                                            <input type="checkbox" id="year-select-all" class="select-all-checkbox h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded">
+                                            <label for="year-select-all" class="ml-2 text-sm text-gray-700 dark:text-gray-300 font-medium">Select All</label>
+                                        </div>
+                                    </div>
+                                    <div id="year-options" class="py-1">
+                                        {% for year in years|default([]) %}
+                                        <div class="px-3 py-1 hover:bg-gray-100 dark:hover:bg-gray-600">
+                                            <div class="flex items-center">
+                                                <input type="checkbox" id="year-{{ loop.index }}" value="{{ year }}" class="year-option h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded">
+                                                <label for="year-{{ loop.index }}" class="ml-2 text-sm text-gray-700 dark:text-gray-300">{{ year }}</label>
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                <div class="flex flex-wrap gap-2 mt-2" id="year-selected-tags"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Status filter -->
+                        <div>
+                            <label for="downloaded-filter" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Status</label>
+                            <select id="downloaded-filter" class="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring focus:ring-emerald-200 dark:bg-gray-700 dark:text-white">
+                                <option value="">All Status</option>
+                                <option value="true">Downloaded</option>
+                                <option value="false">Not Downloaded</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Cache Information -->
+                        <div class="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
+                            <h3 class="text-md font-medium mb-2 text-gray-700 dark:text-gray-300">Cache Information</h3>
+                            <div class="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                                <p>Downloaded Files: <span id="cache-file-count">{{ cache_stats.total_files|default(0) }}</span></p>
+                                <p>Total Size: <span id="cache-size">{{ cache_stats.total_size|default(0)|filesizeformat }}</span></p>
+                            </div>
+                            
+                            <!-- Cache Control Buttons -->
+                            <div class="grid grid-cols-2 gap-2 mt-3">
+                                <button id="reload-cache-btn" class="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                                    Reload Cache
+                                </button>
+                                <button id="reset-cache-btn" class="px-3 py-1.5 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
+                                    Reset Cache
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main content area -->
+            <div class="md:w-3/4">
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
+                    <div class="mb-4 flex justify-between items-center">
+                        <div class="flex items-center">
+                            <input id="select-all" type="checkbox" class="mr-2 h-5 w-5 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded">
+                            <label for="select-all" class="text-sm font-medium text-gray-700 dark:text-gray-300">Select All</label>
+                        </div>
+                        <div>
+                            <button id="download-selected" class="px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                                Download Selected
+                            </button>
+                        </div>
+                    </div>
+
+                    {% if error %}
+                    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4" role="alert">
+                        <p>{{ error }}</p>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                            <thead class="bg-gray-50 dark:bg-gray-800">
+                                <tr>
+                                    <th scope="col" class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                        <span class="sr-only">Select All</span>
+                                    </th>
+                                    <th scope="col" class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer sortable" data-sort-by="subject">
+                                        <div class="flex items-center">
+                                            <span>Subject</span>
+                                            <span class="sort-icon ml-1">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                                                </svg>
+                                            </span>
+                                        </div>
+                                    </th>
+                                    <th scope="col" class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer sortable" data-sort-by="level">
+                                        <div class="flex items-center">
+                                            <span>Level</span>
+                                            <span class="sort-icon ml-1">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                                                </svg>
+                                            </span>
+                                        </div>
+                                    </th>
+                                    <th scope="col" class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer sortable" data-sort-by="year">
+                                        <div class="flex items-center">
+                                            <span>Year</span>
+                                            <span class="sort-icon ml-1">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                                                </svg>
+                                            </span>
+                                        </div>
+                                    </th>
+                                    <th scope="col" class="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                        PDF Packet
+                                        <div class="inline-block ml-1">
+                                            <input id="select-all-packets" type="checkbox" class="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded">
+                                        </div>
+                                    </th>
+                                    <th scope="col" class="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                        ZIP Data Files
+                                        <div class="inline-block ml-1">
+                                            <input id="select-all-datafiles" type="checkbox" class="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded">
+                                        </div>
+                                    </th>
+                                    <th scope="col" class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer sortable" data-sort-by="status">
+                                        <div class="flex items-center">
+                                            <span>Status</span>
+                                            <span class="sort-icon ml-1">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                                                </svg>
+                                            </span>
+                                        </div>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody id="contests-table-body" class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                                <!-- Contest rows will be loaded here -->
+                                <tr>
+                                    <td colspan="7" class="px-6 py-4 text-center">
+                                        <div class="flex justify-center">
+                                            <div class="spinner mr-2"></div>
+                                            Loading contests...
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .spinner {
+            border: 2px solid rgba(0, 0, 0, 0.1);
+            border-top-color: #10b981;
+            border-radius: 50%;
+            width: 1rem;
+            height: 1rem;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .status-badge {
+            @apply px-2 py-1 text-xs font-medium rounded-full;
+        }
+        
+        .status-downloaded {
+            @apply bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200;
+        }
+        
+        .status-partial {
+            @apply bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200;
+        }
+        
+        .status-pending {
+            @apply bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200;
+        }
+        
+        /* Filter tag styles */
+        .filter-tag {
+            @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-800 dark:text-emerald-100 shadow-sm border border-emerald-200 dark:border-emerald-700 m-0.5;
+            transition: all 0.15s;
+        }
+        
+        .filter-tag:hover {
+            @apply bg-emerald-200 dark:bg-emerald-700;
+        }
+        
+        .filter-tag .remove-tag {
+            @apply ml-1.5 h-4 w-4 rounded-full inline-flex items-center justify-center bg-emerald-200 text-emerald-700 hover:bg-emerald-300 hover:text-emerald-800 dark:bg-emerald-700 dark:text-emerald-200 dark:hover:bg-emerald-600 dark:hover:text-emerald-100 focus:outline-none;
+            transition: all 0.15s;
+        }
+        
+        /* Sorting styles */
+        .sortable {
+            position: relative;
+        }
+        
+        .sort-icon {
+            opacity: 0.5;
+            transition: all 0.2s;
+        }
+        
+        .sortable:hover .sort-icon {
+            opacity: 1;
+        }
+        
+        .sort-asc .sort-icon svg, 
+        .sort-desc .sort-icon svg {
+            opacity: 1;
+            @apply text-emerald-600;
+        }
+        
+        .sort-asc .sort-icon {
+            transform: rotate(180deg);
+        }
+        
+        .dropdown-toggle {
+            transition: all 0.2s;
+        }
+        
+        .dropdown-active .dropdown-toggle {
+            transform: rotate(180deg);
+        }
+    </style>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html> 

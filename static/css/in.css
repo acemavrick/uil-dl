@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+/* Custom styles for UIL Downloads app */
+/* Stats container styling */
+.stats-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-around;
+}
+
+.stat {
+  text-align: center;
+  padding: 0.75rem;
+  min-width: 120px;
+}
+
+/* Custom checkboxes */
+input[type="checkbox"] {
+  @apply cursor-pointer;
+}
+
+/* Table row hover effect */
+tbody tr:hover {
+  @apply bg-emerald-50 dark:bg-emerald-900/10;
+}
+
+/* Downloaded status badges */
+.status-badge {
+  @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-medium;
+}
+
+.status-downloaded {
+  @apply bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400;
+}
+
+.status-pending {
+  @apply bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400;
+}
+
+.status-partial {
+  @apply bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400;
+}
+
+/* Download button animation */
+.download-btn {
+  @apply transition-all duration-200;
+}
+
+.download-btn:active {
+  @apply scale-95;
+}
+
+/* Loading spinner animation */
+@keyframes spinner {
+  to {transform: rotate(360deg);}
+}
+
+.spinner {
+  @apply inline-block w-4 h-4 border-2 border-emerald-300 dark:border-emerald-700 rounded-full border-t-emerald-500 dark:border-t-emerald-400 animate-spin;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .stats-container {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .stat {
+    width: 100%;
+    margin-bottom: 1rem;
+  }
+
+  .filter-sidebar {
+    @apply mb-6;
+  }
+} 
