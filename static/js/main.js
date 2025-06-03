@@ -226,14 +226,14 @@ document.addEventListener('DOMContentLoaded', function() {
         
         group.selected.forEach(value => {
             const tag = document.createElement('span');
-            tag.className = 'filter-tag';
+            tag.className = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-100 border border-gray-300 dark:border-gray-500 m-0.5 filter-tag';
             tag.setAttribute('data-value', value);
             
             const tagText = document.createElement('span');
             tagText.textContent = value;
             
             const removeBtn = document.createElement('button');
-            removeBtn.className = 'remove-tag';
+            removeBtn.className = 'ml-1.5 h-4 w-4 rounded-full inline-flex items-center justify-center bg-gray-300 text-gray-600 dark:bg-gray-500 dark:text-gray-200 focus:outline-none remove-tag';
             removeBtn.innerHTML = '&times;';
             removeBtn.addEventListener('click', function() {
                 // Find and uncheck the corresponding checkbox
@@ -382,19 +382,19 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     // Create the subject cell
                     const subjectCell = document.createElement('td');
-                    subjectCell.className = 'px-3 py-4 whitespace-nowrap';
+                    subjectCell.className = 'px-3 py-4 whitespace-nowrap text-gray-800 dark:text-gray-200';
                     subjectCell.textContent = contest.subject;
                     row.appendChild(subjectCell);
                     
                     // Create the level cell
                     const levelCell = document.createElement('td');
-                    levelCell.className = 'px-3 py-4 whitespace-nowrap';
+                    levelCell.className = 'px-3 py-4 whitespace-nowrap text-gray-800 dark:text-gray-200';
                     levelCell.textContent = contest.level;
                     row.appendChild(levelCell);
                     
                     // Create the year cell
                     const yearCell = document.createElement('td');
-                    yearCell.className = 'px-3 py-4 whitespace-nowrap';
+                    yearCell.className = 'px-3 py-4 whitespace-nowrap text-gray-800 dark:text-gray-200';
                     yearCell.textContent = contest.year;
                     row.appendChild(yearCell);
                     
@@ -451,6 +451,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         packetCell.appendChild(packetContainer);
                     } else {
                         packetCell.textContent = 'N/A';
+                        packetCell.classList.add('text-gray-800', 'dark:text-gray-200');
                     }
                     
                     row.appendChild(packetCell);
@@ -508,6 +509,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         dataFileCell.appendChild(dataFileContainer);
                     } else {
                         dataFileCell.textContent = 'N/A';
+                        dataFileCell.classList.add('text-gray-800', 'dark:text-gray-200');
                     }
                     
                     row.appendChild(dataFileCell);

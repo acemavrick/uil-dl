@@ -25,15 +25,10 @@ class ColoredFormatter(logging.Formatter):
         original_levelname = record.levelname
         if original_levelname in self.COLORS:
             colored_levelname = f"{self.COLORS[original_levelname]}{original_levelname}{Style.RESET_ALL}"
-            # Apply color to the levelname in the formatted string, not the record itself for msg
-            # Ensure message itself is colored by the same level's color
+            # Colorize levelname and message for logging output.
+            # This approach avoids complex Formatter method overrides by temporarily
+            # modifying record fields before passing to the base class format method.
             colored_msg = f"{self.COLORS[original_levelname]}{record.msg}{Style.RESET_ALL}"
-            
-            # Temporarily set record.msg for super().format to use the uncolored msg
-            # but then we'll replace the levelname and msg in the final string.
-            # A bit hacky, but avoids complex overriding of the entire format method.
-            # Simpler: Color levelname, color msg, then let super().format do the rest with colored parts.
-            # Let's ensure the base format string is handled correctly.
             
             # Store original msg, colorize the record's msg field for the current formatter pass
             original_msg = record.msg
@@ -60,14 +55,14 @@ logger.addHandler(handler)
 logger.propagate = False
 
 @dataclass
-class ContestDataEntry: # Renamed to avoid confusion with main ContestData class if any
+class ContestDataEntry:
     subject: str
     level: str
     year: int
     link: str
 
 @dataclass
-class DataFileEntry: # Renamed
+class DataFileEntry:
     subject: str
     level: str
     year: int
@@ -116,7 +111,7 @@ def _load_and_parse_json_data(
         parsed_data_store['subjectDict'].update(data['subjectDict'])
         parsed_data_store['titleAbbrevs'].update(data['titleAbbrevs'])
         
-        current_stats = parsed_data_store['stats'] # More direct reference
+        current_stats = parsed_data_store['stats']
 
         for key, url in data['linkdata'].items():
             parts = key.replace('_data', '').split('_')
@@ -203,7 +198,7 @@ def create_database(json_file: str, db_path: str, interactive: bool = True):
                 raise ValueError(f"Failed to parse {json_file} in non-interactive mode.")
 
         # Parsing was successful, display stats
-        stats = parsed_data_store['stats'] # Convenience
+        stats = parsed_data_store['stats']
         logger.info("Data processing from JSON completed with stats:")
         logger.info(f"  - Contests found: {stats['contests_found']}")
         logger.info(f"  - Data files found: {stats['data_files_found']}")
@@ -352,7 +347,6 @@ def create_database(json_file: str, db_path: str, interactive: bool = True):
             
     except sqlite3.Error as e:
         logger.error(f"A database error occurred: {e}")
-        # Consider if conn might be None or if rollback is needed if not using context manager for transaction
         raise
     except Exception as e:
         logger.error(f"An unexpected error occurred during database operations: {e}")
@@ -369,5 +363,3 @@ if __name__ == '__main__':
         # This catches exceptions that might cause create_database to exit prematurely.
         logger.critical(f"Database creation process failed: {e}")
         # For __main__ context, re-raising might be too much, or print stack trace.
-        # import traceback
-        # traceback.print_exc()
