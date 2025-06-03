@@ -1,0 +1,24 @@
+{
+  "name": "uil-dl",
+  "version": "1.0.0",
+  "description": "A tool enabling easy and bulk download of UIL Academics contest materials and data files.",
+  "homepage": "https://github.com/acemavrick/uil-dl#readme",
+  "bugs": {
+    "url": "https://github.com/acemavrick/uil-dl/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/acemavrick/uil-dl.git"
+  },
+  "license": "ISC",
+  "author": "acemavrick",
+  "type": "commonjs",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "@tailwindcss/cli": "^4.1.8",
+    "htmx.org": "^2.0.4",
+    "tailwindcss": "^4.1.8"
+  }
+}

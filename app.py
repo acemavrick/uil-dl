@@ -9,7 +9,7 @@ from flask import Flask, render_template, request, jsonify, send_file, redirect,
 from werkzeug.utils import secure_filename
 
 # build tailwindcss
-os.system("npx tailwindcss -i ./static/css/in.css -o ./static/css/out.css")
+# os.system("npx tailwindcss -i ./static/css/in.css -o ./static/css/out.css")
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -463,4 +463,4 @@ def get_stats():
 
 if __name__ == '__main__':
     logger.info("Starting UIL Download Flask application")
-    app.run(debug=True, port=5001) 
+    app.run(debug=False, port=5001) 
