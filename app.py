@@ -362,69 +362,92 @@ def get_contests():
         if conn is None:
             return jsonify({"error": "Database connection failed"}), 500
         
-        # Build query to get contests with their associated data files
-        query = """
-            SELECT 
-                c.id AS contest_id, c.subject, c.level, c.year, c.link AS contest_link,
-                d.id AS data_file_id, d.link AS data_file_link
-            FROM contests c
-            LEFT JOIN data_files d ON c.data_file_id = d.id
-            WHERE 1=1
-        """
+        # Build query to get all contests and all data files, including unlinked ones.
+        # This is done by finding all unique (subject, level, year) combinations
+        # and then LEFT JOINING both contests and data_files to that set.
+
+        where_conditions = []
         params = []
-        
-        # Handle multiple subject values
         if subjects:
             placeholders = ', '.join(['?'] * len(subjects))
-            query += f" AND c.subject IN ({placeholders})"
+            where_conditions.append(f"subject IN ({placeholders})")
             params.extend(subjects)
         
-        # Handle multiple level values
         if levels:
             placeholders = ', '.join(['?'] * len(levels))
-            query += f" AND c.level IN ({placeholders})"
+            where_conditions.append(f"level IN ({placeholders})")
             params.extend(levels)
         
-        # Handle multiple year values
         if years:
             placeholders = ', '.join(['?'] * len(years))
-            query += f" AND c.year IN ({placeholders})"
+            where_conditions.append(f"year IN ({placeholders})")
             params.extend([int(year) for year in years])
-            
-        query += " ORDER BY c.subject, c.level, c.year DESC"
+
+        # The WHERE clause applies to both parts of the UNION inside the CTE
+        where_clause = ""
+        if where_conditions:
+            where_clause = "WHERE " + " AND ".join(where_conditions)
+            # Parameters need to be duplicated for the two SELECTs in the UNION
+            params = params * 2
+
+        query = f"""
+            WITH all_items AS (
+                SELECT subject, level, year FROM contests {where_clause}
+                UNION
+                SELECT subject, level, year FROM data_files {where_clause}
+            )
+            SELECT
+                i.subject, i.level, i.year,
+                c.id AS contest_id, c.link AS contest_link,
+                d.id AS data_file_id, d.link AS data_file_link
+            FROM all_items i
+            LEFT JOIN contests c ON i.subject = c.subject AND i.level = c.level AND i.year = c.year
+            LEFT JOIN data_files d ON i.subject = d.subject AND i.level = d.level AND i.year = d.year
+            ORDER BY i.subject, i.level, i.year DESC
+        """
         
         contests = conn.execute(query, params).fetchall()
         conn.close()
         
         result = []
-        for contest in contests:
+        for item in contests:
             contest_dict = {
-                'id': contest['contest_id'],
-                'subject': contest['subject'],
-                'level': contest['level'],
-                'year': contest['year'],
-                'contest': {
-                    'id': contest['contest_id'],
-                    'link': contest['contest_link'],
-                    'downloaded': download_cache.is_cached(generate_cache_key('contest', contest['subject'], contest['level'], contest['year']))
-                },
+                'id': item['contest_id'],  # May be None if it's a data_file-only item
+                'subject': item['subject'],
+                'level': item['level'],
+                'year': item['year'],
+                'contest': None,
                 'data_file': None
             }
             
+            # Add contest info if available
+            if item['contest_id']:
+                contest_dict['contest'] = {
+                    'id': item['contest_id'],
+                    'link': item['contest_link'],
+                    'downloaded': download_cache.is_cached(generate_cache_key('contest', item['subject'], item['level'], item['year']))
+                }
+
             # Add data file info if available
-            if contest['data_file_id']:
+            if item['data_file_id']:
                 contest_dict['data_file'] = {
-                    'id': contest['data_file_id'],
-                    'link': contest['data_file_link'],
-                    'downloaded': download_cache.is_cached(generate_cache_key('data_file', contest['subject'], contest['level'], contest['year']))
+                    'id': item['data_file_id'],
+                    'link': item['data_file_link'],
+                    'downloaded': download_cache.is_cached(generate_cache_key('data_file', item['subject'], item['level'], item['year']))
                 }
             
             # Filter by download status if requested
             if downloaded == 'true':
-                if contest_dict['contest']['downloaded'] and (not contest_dict['data_file'] or contest_dict['data_file']['downloaded']):
+                # Item is considered fully downloaded if all its available parts are downloaded.
+                contest_downloaded = not contest_dict['contest'] or contest_dict['contest']['downloaded']
+                data_file_downloaded = not contest_dict['data_file'] or contest_dict['data_file']['downloaded']
+                if contest_downloaded and data_file_downloaded:
                     result.append(contest_dict)
             elif downloaded == 'false':
-                if not contest_dict['contest']['downloaded'] or (contest_dict['data_file'] and not contest_dict['data_file']['downloaded']):
+                # Item is considered "not downloaded" if any of its parts are missing.
+                contest_missing = contest_dict['contest'] and not contest_dict['contest']['downloaded']
+                data_file_missing = contest_dict['data_file'] and not contest_dict['data_file']['downloaded']
+                if contest_missing or data_file_missing:
                     result.append(contest_dict)
             else:
                 result.append(contest_dict)
