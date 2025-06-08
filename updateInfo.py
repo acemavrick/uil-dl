@@ -54,7 +54,7 @@ logger.propagate = False
 
 # Configuration
 INTERACTIVE = True
-FORCE_REWRITE = True
+FORCE_REWRITE = False
 YEARS = range(2018, 2026)
 # YEARS = range(2022, 2023)
 BASE_URL = "https://www.uiltexas.org/academics/page/{year}-high-school-academic-study-materials"
@@ -132,8 +132,7 @@ def scrape_data():
                             level = text[0]
 
                         # we now have level, packet_url, and data_url (if they exist)
-                        level, packet_url, data_url = [x.lower() for x in (level, packet_url, data_url)]
-                        level = level.replace(" ", "-")
+                        level = level.lower().replace(" ", "-")
                         key_packet = f"{subject}_{level}_{year}"
                         key_data = f"{subject}_{level}_{year}_data"
                         if packet_url:

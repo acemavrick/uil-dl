@@ -415,7 +415,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         if (contest.contest.downloaded) {
                             packetCheckbox.disabled = true;
                             packetCheckbox.title = 'Already downloaded';
-                            packetCheckbox.checked = true; // Show as checked if downloaded
+                            packetCheckbox.checked = true;
                         }
                         
                         packetCheckbox.addEventListener('change', function() {
@@ -424,29 +424,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         });
                         
                         packetContainer.appendChild(packetCheckbox);
-                        
-                        // Add direct download button if not downloaded
-                        if (!contest.contest.downloaded) {
-                            const downloadBtn = document.createElement('button');
-                            downloadBtn.className = 'direct-download text-emerald-600 hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300 ml-2';
-                            downloadBtn.setAttribute('data-id', contest.contest.id);
-                            downloadBtn.setAttribute('data-type', 'contest');
-                            downloadBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                            </svg>`;
-                            downloadBtn.title = 'Download PDF packet';
-                            
-                            downloadBtn.addEventListener('click', function(e) {
-                                e.preventDefault();
-                                const itemId = this.getAttribute('data-id');
-                                const itemType = this.getAttribute('data-type');
-                                
-                                // Open in a new tab for direct downloads
-                                window.open(`/download/${itemId}/${itemType}`, '_blank');
-                            });
-                            
-                            packetContainer.appendChild(downloadBtn);
-                        }
                         
                         packetCell.appendChild(packetContainer);
                     } else {
@@ -473,7 +450,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         if (contest.data_file.downloaded) {
                             dataFileCheckbox.disabled = true;
                             dataFileCheckbox.title = 'Already downloaded';
-                            dataFileCheckbox.checked = true; // Show as checked if downloaded
+                            dataFileCheckbox.checked = true;
                         }
                         
                         dataFileCheckbox.addEventListener('change', function() {
@@ -482,29 +459,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         });
                         
                         dataFileContainer.appendChild(dataFileCheckbox);
-                        
-                        // Add direct download button if not downloaded
-                        if (!contest.data_file.downloaded) {
-                            const downloadBtn = document.createElement('button');
-                            downloadBtn.className = 'direct-download text-emerald-600 hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300 ml-2';
-                            downloadBtn.setAttribute('data-id', contest.data_file.id);
-                            downloadBtn.setAttribute('data-type', 'data_file');
-                            downloadBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                            </svg>`;
-                            downloadBtn.title = 'Download ZIP data file';
-                            
-                            downloadBtn.addEventListener('click', function(e) {
-                                e.preventDefault();
-                                const itemId = this.getAttribute('data-id');
-                                const itemType = this.getAttribute('data-type');
-                                
-                                // Open in a new tab for direct downloads
-                                window.open(`/download/${itemId}/${itemType}`, '_blank');
-                            });
-                            
-                            dataFileContainer.appendChild(downloadBtn);
-                        }
                         
                         dataFileCell.appendChild(dataFileContainer);
                     } else {
@@ -924,7 +878,7 @@ document.addEventListener('DOMContentLoaded', function() {
         cell.innerHTML = `
             <div class="flex justify-center">
                 <span class="spinner mr-1"></span>
-                <span class="text-xs">Downloading...</span>
+                <span class="text-xs text-gray-800 dark:text-gray-200">Downloading...</span>
             </div>
         `;
         
