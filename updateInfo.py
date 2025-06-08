@@ -2,6 +2,7 @@ import requests
 import re
 import json
 import logging
+from selectolax.lexbor import LexborHTMLParser
 from collections import defaultdict
 from colorama import init, Fore, Style
 
@@ -53,10 +54,10 @@ logger.propagate = False
 
 # Configuration
 INTERACTIVE = True
-FORCE_REWRITE = False
+FORCE_REWRITE = True
 YEARS = range(2018, 2026)
+# YEARS = range(2022, 2023)
 BASE_URL = "https://www.uiltexas.org/academics/page/{year}-high-school-academic-study-materials"
-LINK_PATTERN = re.compile(r'<a href="([^"]+)">(.*?)</a>')
 
 def scrape_data():
     """Scrape UIL academic study materials data."""
@@ -75,45 +76,94 @@ def scrape_data():
             response.raise_for_status()
             html = response.text
             
-            catches = LINK_PATTERN.findall(html)
-            i = 0
-            while i < len(catches):
-                url, title = [x.strip() for x in catches[i]]
-                
-                try:
-                    parts = url.split("/")[-1][:-4].split("_")
-                    if len(parts) < 4:
-                        i += 1
-                        continue
-                    
-                    subject, _, level, yr = [x.strip() for x in parts]
-                    
-                    # Clean year
-                    if len(yr) == 2:
-                        yr = "20" + yr
-                    year = int(yr)
-                    
-                    subjects.add(subject)
-                    if level not in title_to_level[title]:
-                        title_to_level[title].append(level)
-                    
-                    key = "_".join((subject, level, str(year)))
-                    linkdata[key] = url
-                    stats['links_found'] += 1
-                    
-                    # Handle data files
-                    if i + 1 < len(catches) and "zip" in catches[i + 1][0][-10:]:
-                        data_url = catches[i + 1][0]
-                        linkdata[key + "_data"] = data_url
-                        stats['data_files_found'] += 1
-                        i += 2
-                    else:
-                        i += 1
-                        
-                except (ValueError, IndexError):
-                    i += 1
-                    continue
+            tree = LexborHTMLParser(html)
             
+            for h2 in tree.root.css('h2'):
+                # all this complexity is bc the html is not consistent
+                # this is why we have standards and conventions
+                # like c'mon it shouldn't be this annoying
+                subject_text = h2.text(strip=True)
+                if not subject_text:
+                    continue
+                subject = subject_text.lower().replace(" ", "-")
+                subjects.add(subject)
+                is_programming = 'programming' in subject
+
+                ul = h2.next.next
+                if not ul or ul.tag != 'ul':
+                    continue
+
+                for li in ul.iter():
+                    if is_programming:
+                        # handle programming subject entries
+                        text = re.split(r'[\n|\t|\r|\f]+', li.text().strip())
+                        level = ""
+                        packet_url = ""
+                        data_url = ""
+                        # yay hardcoding
+                        if len(text) == 1:
+                            # no sublevels to worry about (this would most likely be only the packet)
+                            # we are assuming that the only link is the packet
+                            if link_node := li.css_first('a'):
+                                level = text[0]
+                                packet_url = link_node.attributes.get('href', '')
+                        else:
+                            first_link_node = li.css_first('a')
+                            fln_index = text.index(first_link_node.text(strip=True))
+                            # even more hardcoding and assumptions =D
+                            match fln_index:
+                                # switch whether first link is the first or second piece of text
+                                case 0:
+                                    # i.e. "invitational A", etc. - would be the link to the packet
+                                    packet_url = first_link_node.attributes.get('href', '')
+
+                                    # there should be MORE LINKSSS
+                                    datalink_nodes = li.css('a')[1:]
+                                    if datalink_nodes:
+                                        # this means there is a data file
+                                        data_url = datalink_nodes[0].attributes.get('href', '')
+                                case 1:
+                                    # i.e. "data files" - would be the link to the data
+                                    data_url = first_link_node.attributes.get('href', '')
+                                case _:
+                                    # idk
+                                    raise ValueError(f"Unexpected index: {fln_index}.\n{li.html}")
+                            # regardless, level is the first piece of text
+                            level = text[0]
+
+                        # we now have level, packet_url, and data_url (if they exist)
+                        level, packet_url, data_url = [x.lower() for x in (level, packet_url, data_url)]
+                        level = level.replace(" ", "-")
+                        key_packet = f"{subject}_{level}_{year}"
+                        key_data = f"{subject}_{level}_{year}_data"
+                        if packet_url:
+                            linkdata[key_packet] = packet_url
+                            stats['links_found'] += 1
+                        
+                        if data_url:
+                            linkdata[key_data] = data_url
+                            stats['links_found'] += 1
+                            stats['data_files_found'] += 1
+                        # finally, we are done
+                    else:
+                        link_node = li.css_first('a')
+                        if not link_node:
+                            continue
+                            
+                        level_text = link_node.text(strip=True)
+                        url = link_node.attributes.get('href', '')
+                        
+                        if not level_text:
+                            continue
+                            
+                        level = level_text.lower().replace(" ", "-")
+                        key = f"{subject}_{level}_{year}"
+                        
+                        if url:
+                            linkdata[key] = url
+                            stats['links_found'] += 1
+                            if level not in title_to_level[level_text]:
+                                title_to_level[level_text].append(level)
             stats['years_processed'] += 1
             logger.info(f"Completed year {year}")
             
@@ -127,7 +177,7 @@ def scrape_data():
     logger.info(f"- Data files found: {stats['data_files_found']}")
     logger.info(f"- Unique subjects: {len(subjects)}")
     logger.info(f"- Title mappings: {len(title_to_level)}")
-    
+
     return subjects, title_to_level, linkdata
 
 def clean_title_abbreviations(title_to_level, old_abbrevs=None):

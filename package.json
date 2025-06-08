@@ -14,7 +14,7 @@
   "author": "acemavrick",
   "type": "commonjs",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "buildcss": "tailwindcss -i ./static/css/in.css -o ./static/css/out.css"
   },
   "dependencies": {
     "@tailwindcss/cli": "^4.1.8",
