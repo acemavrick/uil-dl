@@ -4,7 +4,7 @@ import sqlite3
 import logging
 from colorama import init, Fore, Style
 from typing import Dict, List, Tuple, Optional, Any
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 # Initialize colorama for cross-platform color support
@@ -55,25 +55,21 @@ logger.addHandler(handler)
 logger.propagate = False
 
 @dataclass
-class ContestDataEntry:
+class Contest:
+    """Represents a single contest event, with links categorized by type."""
     subject: str
     level: str
     year: int
-    link: str
-
-@dataclass
-class DataFileEntry:
-    subject: str
-    level: str
-    year: int
-    link: str
+    pdf_link: Optional[str] = None
+    zip_link: Optional[str] = None
+    other_link: Optional[str] = None
 
 def _load_and_parse_json_data(
     json_file_path: str, 
-    parsed_data_store: Dict[str, Any] # To store subjectDict, titleAbbrevs, contests, data_files, stats
+    parsed_data_store: Dict[str, Any]
 ) -> bool:
     """
-    Loads, validates, and parses data from info.json.
+    Loads, validates, and parses data from info.json into a unified contest list.
     Updates parsed_data_store with the results.
     Returns True if successful, False otherwise.
     """
@@ -83,13 +79,10 @@ def _load_and_parse_json_data(
     parsed_data_store['subjectDict'] = {}
     parsed_data_store['titleAbbrevs'] = {}
     parsed_data_store['contests'] = []
-    parsed_data_store['data_files'] = []
     parsed_data_store['stats'] = {
-        'contests_found': 0, 'data_files_found': 0, 
+        'total_contests': 0, 'with_pdf_link': 0, 'with_zip_link': 0, 'with_other_link': 0,
         'invalid_years': 0, 'invalid_keys': 0,
         'missing_subjects': 0, 'missing_levels': 0,
-        'linked_files': 0, 'unlinked_files': 0, 
-        'unlinked_details': [] # Moved from top-level stats as it's parse-specific
     }
 
     try:
@@ -112,9 +105,13 @@ def _load_and_parse_json_data(
         parsed_data_store['titleAbbrevs'].update(data['titleAbbrevs'])
         
         current_stats = parsed_data_store['stats']
+        # In-memory store to merge links for the same contest
+        contests_map: Dict[Tuple[str, str, int], Dict[str, Optional[str]]] = {}
 
         for key, url in data['linkdata'].items():
-            parts = key.replace('_data', '').split('_')
+            base_key = key.removesuffix('_data')
+            parts = base_key.split('_')
+
             if len(parts) < 3:
                 current_stats['invalid_keys'] += 1
                 logger.warning(f"Invalid key format: {key}")
@@ -144,13 +141,46 @@ def _load_and_parse_json_data(
             if level_abbrev_part not in parsed_data_store['titleAbbrevs']:
                 current_stats['missing_levels'] += 1
                 logger.warning(f"Level abbreviation '{level_abbrev_part}' (from item '{key}') not found in titleAbbrevs. Using raw abbreviation as level name: '{level_full_name}'.")
-            
-            if key.endswith('_data'):
-                parsed_data_store['data_files'].append(DataFileEntry(subject_name, level_full_name, year, url))
-                current_stats['data_files_found'] += 1
+
+            contest_key = (subject_name, level_full_name, year)
+            if contest_key not in contests_map:
+                contests_map[contest_key] = {'pdf_link': None, 'zip_link': None, 'other_link': None}
+
+            url_lower = url.lower()
+            if url_lower.endswith('.pdf'):
+                if contests_map[contest_key]['pdf_link']:
+                    logger.warning(f"Duplicate PDF link for {contest_key}. Overwriting.")
+                contests_map[contest_key]['pdf_link'] = url
+            elif url_lower.endswith('.zip'):
+                if contests_map[contest_key]['zip_link']:
+                    logger.warning(f"Duplicate ZIP link for {contest_key}. Overwriting.")
+                contests_map[contest_key]['zip_link'] = url
             else:
-                parsed_data_store['contests'].append(ContestDataEntry(subject_name, level_full_name, year, url))
-                current_stats['contests_found'] += 1
+                if contests_map[contest_key]['other_link']:
+                    logger.warning(f"Duplicate OTHER link for {contest_key}. Overwriting.")
+                contests_map[contest_key]['other_link'] = url
+
+        # Convert the map to a list of Contest objects and calculate final stats
+        final_contests = []
+        for (subject, level, year), links in contests_map.items():
+            contest = Contest(
+                subject=subject,
+                level=level,
+                year=year,
+                pdf_link=links['pdf_link'],
+                zip_link=links['zip_link'],
+                other_link=links['other_link']
+            )
+            final_contests.append(contest)
+            if contest.pdf_link:
+                current_stats['with_pdf_link'] += 1
+            if contest.zip_link:
+                current_stats['with_zip_link'] += 1
+            if contest.other_link:
+                current_stats['with_other_link'] += 1
+
+        parsed_data_store['contests'] = sorted(final_contests, key=lambda c: (c.subject, c.year, c.level))
+        current_stats['total_contests'] = len(parsed_data_store['contests'])
         
         logger.info(f"Successfully parsed {json_file_path}.")
         return True
@@ -200,8 +230,10 @@ def create_database(json_file: str, db_path: str, interactive: bool = True):
         # Parsing was successful, display stats
         stats = parsed_data_store['stats']
         logger.info("Data processing from JSON completed with stats:")
-        logger.info(f"  - Contests found: {stats['contests_found']}")
-        logger.info(f"  - Data files found: {stats['data_files_found']}")
+        logger.info(f"  - Total unique contests found: {stats['total_contests']}")
+        logger.info(f"  - Contests with PDF links: {stats['with_pdf_link']}")
+        logger.info(f"  - Contests with ZIP links: {stats['with_zip_link']}")
+        logger.info(f"  - Contests with OTHER links: {stats['with_other_link']}")
         logger.info(f"  - Invalid keys: {stats['invalid_keys']}")
         logger.info(f"  - Invalid years: {stats['invalid_years']}")
         logger.info(f"  - Subject keys not in subjectDict: {stats['missing_subjects']}")
@@ -209,8 +241,10 @@ def create_database(json_file: str, db_path: str, interactive: bool = True):
 
         if interactive:
             print(f"{Fore.YELLOW}Summary of data parsed from {Fore.CYAN}{json_file}{Style.RESET_ALL}:")
-            print(f"  - {Fore.GREEN}{stats['contests_found']} contests{Style.RESET_ALL}")
-            print(f"  - {Fore.GREEN}{stats['data_files_found']} data files{Style.RESET_ALL}")
+            print(f"  - {Fore.GREEN}{stats['total_contests']} unique contests identified.{Style.RESET_ALL}")
+            print(f"    - {stats['with_pdf_link']} have a PDF link.")
+            print(f"    - {stats['with_zip_link']} have a ZIP link.")
+            print(f"    - {stats['with_other_link']} have an OTHER link.")
             if any(stats[k] > 0 for k in ['invalid_keys', 'invalid_years', 'missing_subjects', 'missing_levels']):
                 print(f"{Fore.YELLOW}Warnings from parsing:{Style.RESET_ALL}")
                 if stats['invalid_keys'] > 0: print(f"  - {Fore.YELLOW}{stats['invalid_keys']} invalid keys found.{Style.RESET_ALL}")
@@ -242,104 +276,52 @@ def create_database(json_file: str, db_path: str, interactive: bool = True):
             break # Proceed directly
 
     # ----- Database Operations -----
-    # At this point, parsed_data_store contains user-confirmed data.
     contests_to_insert = parsed_data_store['contests']
-    data_files_to_insert = parsed_data_store['data_files']
-    # We'll re-calculate unlinked_files stats here for clarity during insertion.
-    current_db_op_stats = {'linked_files': 0, 'unlinked_files': 0, 'unlinked_details': []}
-
 
     try:
         with sqlite3.connect(db_path) as conn:
             c = conn.cursor()
-            logger.info("Creating database tables...")
+            logger.info("Creating database table...")
             try:
+                # A single table to hold all contest information
                 c.execute('''CREATE TABLE contests (
-                    id INTEGER PRIMARY KEY, subject TEXT NOT NULL, level TEXT NOT NULL,
-                    year INTEGER NOT NULL, link TEXT NOT NULL, data_file_id INTEGER,
-                    FOREIGN KEY (data_file_id) REFERENCES data_files(id), UNIQUE(subject, level, year)
-                )''')
-                c.execute('''CREATE TABLE data_files (
-                    id INTEGER PRIMARY KEY, subject TEXT NOT NULL, level TEXT NOT NULL,
-                    year INTEGER NOT NULL, link TEXT NOT NULL, contest_id INTEGER,
-                    FOREIGN KEY (contest_id) REFERENCES contests(id), UNIQUE(subject, level, year)
+                    id INTEGER PRIMARY KEY,
+                    subject TEXT NOT NULL,
+                    level TEXT NOT NULL,
+                    year INTEGER NOT NULL,
+                    pdf_link TEXT,
+                    zip_link TEXT,
+                    other_link TEXT,
+                    UNIQUE(subject, level, year)
                 )''')
             except sqlite3.Error as e:
-                logger.error(f"Error creating database tables: {e}")
+                logger.error(f"Error creating database table: {e}")
                 raise
 
             logger.info(f"Inserting {len(contests_to_insert)} contest entries...")
             try:
+                # Prepare data for executemany
+                insert_data = [
+                    (
+                        entry.subject, entry.level, entry.year,
+                        entry.pdf_link, entry.zip_link, entry.other_link
+                    ) for entry in contests_to_insert
+                ]
                 c.executemany(
-                    'INSERT INTO contests (subject, level, year, link) VALUES (?, ?, ?, ?)',
-                    [(entry.subject, entry.level, entry.year, entry.link) for entry in contests_to_insert]
+                    'INSERT INTO contests (subject, level, year, pdf_link, zip_link, other_link) VALUES (?, ?, ?, ?, ?, ?)',
+                    insert_data
                 )
             except sqlite3.Error as e:
-                logger.error(f"Error inserting contests: {e}")
-                if "UNIQUE constraint failed" in str(e): logger.error("This usually means duplicate contest entries in the data.")
+                logger.error(f"Error inserting contest data: {e}")
+                if "UNIQUE constraint failed" in str(e): 
+                    logger.error("This usually means duplicate contest entries were generated from the source data.")
                 raise
             
-            logger.info(f"Inserting {len(data_files_to_insert)} data file entries and linking to contests...")
-            temp_data_files_for_db = []
-            for df_entry in data_files_to_insert:
-                c.execute(
-                    'SELECT id FROM contests WHERE subject=? AND level=? AND year=?',
-                    (df_entry.subject, df_entry.level, df_entry.year)
-                )
-                contest_row = c.fetchone()
-                contest_id = contest_row[0] if contest_row else None
-                
-                if contest_id:
-                    current_db_op_stats['linked_files'] += 1
-                else:
-                    current_db_op_stats['unlinked_files'] += 1
-                    unlinked_info = {'subject': df_entry.subject, 'level': df_entry.level, 'year': df_entry.year, 'url': df_entry.link}
-                    current_db_op_stats['unlinked_details'].append(unlinked_info)
-                    if interactive:
-                        print(f"{Fore.YELLOW}Warning: No matching contest found for data file:{Style.RESET_ALL}")
-                        print(f"  - Subject: {Fore.CYAN}{df_entry.subject}{Style.RESET_ALL}, Level: {Fore.CYAN}{df_entry.level}{Style.RESET_ALL}, Year: {Fore.CYAN}{df_entry.year}{Style.RESET_ALL}")
-                        if input(f"{Fore.YELLOW}  Continue inserting this data file entry anyway? (y/n): {Style.RESET_ALL}").lower() != 'y':
-                            logger.warning(f"User chose to skip unlinked data file: {df_entry.subject} {df_entry.level} {df_entry.year}")
-                            continue # Skip adding this to temp_data_files_for_db
-                temp_data_files_for_db.append((df_entry.subject, df_entry.level, df_entry.year, df_entry.link, contest_id))
-            
-            if current_db_op_stats['unlinked_files'] > 0:
-                logger.warning("Data file linking stats during insertion:")
-                logger.warning(f"  - Linked files: {current_db_op_stats['linked_files']}")
-                logger.warning(f"  - Unlinked files initially found (some may have been skipped by user): {current_db_op_stats['unlinked_files']}")
-                for detail in current_db_op_stats['unlinked_details']:
-                    logger.warning(f"    - Potentially unlinked: {detail['subject']} - {detail['level']} - {detail['year']}")
-
-            if temp_data_files_for_db:
-                try:
-                    c.executemany(
-                        'INSERT INTO data_files (subject, level, year, link, contest_id) VALUES (?, ?, ?, ?, ?)',
-                        temp_data_files_for_db
-                    )
-                except sqlite3.Error as e:
-                    logger.error(f"Error inserting data files: {e}")
-                    if "UNIQUE constraint failed" in str(e): logger.error("This usually means duplicate data file entries.")
-                    raise
-            else:
-                logger.info("No data files were prepared for insertion into the database.")
-
-            logger.info("Updating contest data_file_id references...")
-            try:
-                c.execute('''
-                    UPDATE contests SET data_file_id = (
-                        SELECT id FROM data_files WHERE data_files.contest_id = contests.id
-                    )
-                ''')
-            except sqlite3.Error as e:
-                logger.error(f"Error updating contest data_file_id references: {e}")
-                raise
-            
-            logger.info("Creating database indexes...")
+            logger.info("Creating database index...")
             try:
                 c.execute('CREATE INDEX idx_contests_subject_level_year ON contests(subject, level, year)')
-                c.execute('CREATE INDEX idx_data_files_subject_level_year ON data_files(subject, level, year)')
             except sqlite3.Error as e:
-                logger.error(f"Error creating indexes: {e}")
+                logger.error(f"Error creating index: {e}")
                 raise
             
             conn.commit()
@@ -355,11 +337,8 @@ def create_database(json_file: str, db_path: str, interactive: bool = True):
 if __name__ == '__main__':
     try:
         # Example usage:
-        # Ensure info.json exists and is valid for this test.
-        # You might want to create a dummy info.json for testing.
         create_database('info.json', 'info.db', interactive=True)
     except Exception as e:
         # The logger in create_database should have already logged specifics.
         # This catches exceptions that might cause create_database to exit prematurely.
         logger.critical(f"Database creation process failed: {e}")
-        # For __main__ context, re-raising might be too much, or print stack trace.

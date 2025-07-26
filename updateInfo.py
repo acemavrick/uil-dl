@@ -294,7 +294,7 @@ def merge_with_existing(new_data, old_data):
     
     # Merge subject dictionary
     old_subject_dict = old_data.get('subjectDict', {})
-    new_subject_dict = {k: f'0-{k}' for k in subjects}
+    new_subject_dict = {k: k.replace("-", " ").title() for k in subjects}
     merged_subject_dict = {}
     
     stats = {'subjects_preserved': 0, 'subjects_new': 0}
@@ -333,7 +333,7 @@ def create_new_data(data):
     """Create new data structure from scraped data."""
     subjects, title_to_level, linkdata = data
     return {
-        "subjectDict": {k: f'0-{k}' for k in subjects},
+        "subjectDict": {k: k.replace("-", " ").title() for k in subjects},
         "linkdata": linkdata,
         "titleAbbrevs": clean_title_abbreviations(title_to_level)
     }
