@@ -1,0 +1,15 @@
+<div class="flex items-center justify-center space-x-2">
+    <input type="checkbox" 
+           class="{% if link_type == 'pdf' %}packet-checkbox{% else %}datafile-checkbox{% endif %} h-5 w-5 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded"
+           data-id="{{ item_id }}"
+           data-type="{{ link_type }}"
+           disabled 
+           checked
+           title="{% if already_downloaded %}Already downloaded{% else %}Just downloaded{% endif %}">
+</div>
+
+<!-- Trigger cache stats update -->
+<div hx-get="/cache-stats" 
+     hx-target="#cache-info div" 
+     hx-trigger="load delay:500ms"
+     hx-swap="innerHTML"></div> 

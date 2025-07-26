@@ -19,157 +19,114 @@
             <!-- Left sidebar with filters -->
             <div class="md:w-1/4">
                 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 mb-6">
-
                     <!-- Notes -->
                     <div class="mb-4 py-3 rounded-md border-b border-gray-200 dark:border-gray-700">
                         <p class="text-sm text-gray-600 dark:text-gray-300">
                             <span class="font-bold">Note:</span> Some CS Programming data zips contain the packets, which is why some don't have "packet" downloads.
-                            <br>
-                            <br>
+                            <br><br>
                             <span class="font-bold">Note 2:</span> "Partially Downloaded" simply means that the data files have been downloaded, but not the packet.
-                            <br>
-                            There may not be a packet.
-                            <br>
+                            <br>There may not be a packet.<br>
                             In that case, ignore "Partially Downloaded" as it is actually Fully Downloaded.
                         </p>
                     </div>
 
                     <h2 class="text-lg font-medium mb-4 text-gray-700 dark:text-gray-200">Filters</h2>
-                    <div class="space-y-5">
-                        <!-- Subject filter multiselect -->
-                        <div class="filter-group">
-                            <label for="subject-filter-input" class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Subjects</label>
-                            <div class="relative filter-multiselect" id="subject-filter-container">
-                                <div class="flex items-center border border-gray-300 dark:border-gray-600 rounded-md">
-                                    <input type="text" id="subject-filter-input" placeholder="Search subjects..." class="w-full rounded-md border-0 shadow-none focus:ring-0 dark:bg-gray-700 dark:text-gray-200 dark:placeholder-gray-400 px-3 py-2">
-                                    <div class="dropdown-toggle pr-2 text-gray-500 dark:text-gray-300 cursor-pointer">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-                                        </svg>
-                                    </div>
-                                </div>
-                                <div class="hidden absolute z-10 mt-1 w-full bg-white dark:bg-gray-700 shadow-lg rounded-md py-1 max-h-60 overflow-auto border border-gray-200 dark:border-gray-600" id="subject-filter-dropdown">
-                                    <div class="px-3 py-2 border-b border-gray-200 dark:border-gray-600 sticky top-0 bg-white dark:bg-gray-700">
-                                        <div class="flex items-center">
-                                            <input type="checkbox" id="subject-select-all" class="select-all-checkbox h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded">
-                                            <label for="subject-select-all" class="ml-2 text-sm text-gray-700 dark:text-gray-200 font-medium">Select All</label>
-                                        </div>
-                                    </div>
-                                    <div id="subject-options" class="py-1">
-                                        {% for subject in subjects|default([]) %}
-                                        <div class="px-3 py-1 hover:bg-gray-100 dark:hover:bg-gray-600">
-                                            <div class="flex items-center">
-                                                <input type="checkbox" id="subject-{{ loop.index }}" value="{{ subject }}" class="subject-option h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded">
-                                                <label for="subject-{{ loop.index }}" class="ml-2 text-sm text-gray-700 dark:text-gray-200">{{ subject }}</label>
-                                            </div>
-                                        </div>
+                    
+                    <!-- Filter Form -->
+                    <form id="filter-form" 
+                          hx-post="/contests" 
+                          hx-target="#table-container" 
+                          hx-trigger="change, submit"
+                          hx-indicator="#loading-indicator">
+                        
+                        <div id="filter-tags" class="flex flex-wrap gap-2 mb-4"></div>
+                        
+                        <div class="space-y-5">
+                            <!-- Subject filter -->
+                            <div class="filter-group">
+                                <details class="mb-2">
+                                    <summary class="cursor-pointer text-sm font-medium text-gray-700 dark:text-gray-200 mb-2 select-none">Subject</summary>
+                                    <div class="pl-4 pt-2 space-y-1 max-h-48 overflow-y-auto">
+                                        {% for subject in subjects %}
+                                        <label class="flex items-center space-x-2">
+                                            <input type="checkbox" name="subjects" value="{{ subject }}" class="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded">
+                                            <span class="text-sm text-gray-700 dark:text-gray-200">{{ subject }}</span>
+                                        </label>
                                         {% endfor %}
                                     </div>
-                                </div>
-                                <div class="flex flex-wrap gap-2 mt-2" id="subject-selected-tags"></div>
-                            </div>
-                        </div>
-                        
-                        <!-- Level filter multiselect -->
-                        <div class="filter-group">
-                            <label for="level-filter-input" class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Levels</label>
-                            <div class="relative filter-multiselect" id="level-filter-container">
-                                <div class="flex items-center border border-gray-300 dark:border-gray-600 rounded-md">
-                                    <input type="text" id="level-filter-input" placeholder="Search levels..." class="w-full rounded-md border-0 shadow-none focus:ring-0 dark:bg-gray-700 dark:text-gray-200 dark:placeholder-gray-400 px-3 py-2">
-                                    <div class="dropdown-toggle pr-2 text-gray-500 dark:text-gray-300 cursor-pointer">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-                                        </svg>
-                                    </div>
-                                </div>
-                                <div class="hidden absolute z-10 mt-1 w-full bg-white dark:bg-gray-700 shadow-lg rounded-md py-1 max-h-60 overflow-auto border border-gray-200 dark:border-gray-600" id="level-filter-dropdown">
-                                    <div class="px-3 py-2 border-b border-gray-200 dark:border-gray-600 sticky top-0 bg-white dark:bg-gray-700">
-                                        <div class="flex items-center">
-                                            <input type="checkbox" id="level-select-all" class="select-all-checkbox h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded">
-                                            <label for="level-select-all" class="ml-2 text-sm text-gray-700 dark:text-gray-200 font-medium">Select All</label>
-                                        </div>
-                                    </div>
-                                    <div id="level-options" class="py-1">
-                                        {% for level in levels|default([]) %}
-                                        <div class="px-3 py-1 hover:bg-gray-100 dark:hover:bg-gray-600">
-                                            <div class="flex items-center">
-                                                <input type="checkbox" id="level-{{ loop.index }}" value="{{ level }}" class="level-option h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded">
-                                                <label for="level-{{ loop.index }}" class="ml-2 text-sm text-gray-700 dark:text-gray-200">{{ level }}</label>
-                                            </div>
-                                        </div>
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                                <div class="flex flex-wrap gap-2 mt-2" id="level-selected-tags"></div>
-                            </div>
-                        </div>
-                        
-                        <!-- Year filter multiselect -->
-                        <div class="filter-group">
-                            <label for="year-filter-input" class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Years</label>
-                            <div class="relative filter-multiselect" id="year-filter-container">
-                                <div class="flex items-center border border-gray-300 dark:border-gray-600 rounded-md">
-                                    <input type="text" id="year-filter-input" placeholder="Search years..." class="w-full rounded-md border-0 shadow-none focus:ring-0 dark:bg-gray-700 dark:text-gray-200 dark:placeholder-gray-400 px-3 py-2">
-                                    <div class="dropdown-toggle pr-2 text-gray-500 dark:text-gray-300 cursor-pointer">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-                                        </svg>
-                                    </div>
-                                </div>
-                                <div class="hidden absolute z-10 mt-1 w-full bg-white dark:bg-gray-700 shadow-lg rounded-md py-1 max-h-60 overflow-auto border border-gray-200 dark:border-gray-600" id="year-filter-dropdown">
-                                    <div class="px-3 py-2 border-b border-gray-200 dark:border-gray-600 sticky top-0 bg-white dark:bg-gray-700">
-                                        <div class="flex items-center">
-                                            <input type="checkbox" id="year-select-all" class="select-all-checkbox h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded">
-                                            <label for="year-select-all" class="ml-2 text-sm text-gray-700 dark:text-gray-200 font-medium">Select All</label>
-                                        </div>
-                                    </div>
-                                    <div id="year-options" class="py-1">
-                                        {% for year in years|default([]) %}
-                                        <div class="px-3 py-1 hover:bg-gray-100 dark:hover:bg-gray-600">
-                                            <div class="flex items-center">
-                                                <input type="checkbox" id="year-{{ loop.index }}" value="{{ year }}" class="year-option h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded">
-                                                <label for="year-{{ loop.index }}" class="ml-2 text-sm text-gray-700 dark:text-gray-200">{{ year }}</label>
-                                            </div>
-                                        </div>
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                                <div class="flex flex-wrap gap-2 mt-2" id="year-selected-tags"></div>
-                            </div>
-                        </div>
-                        
-                        <!-- Status filter -->
-                        <div>
-                            <label for="downloaded-filter" class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Status</label>
-                            <div class="relative flex items-center border border-gray-300 dark:border-gray-600 rounded-md">
-                                <select id="downloaded-filter" class="appearance-none w-full rounded-md border-0 shadow-none focus:ring-0 dark:bg-gray-700 dark:text-gray-200 px-3 py-2 pr-10">
-                                    <option value="">All Status</option>
-                                    <option value="true">Downloaded</option>
-                                    <option value="false">Not Downloaded</option>
-                                </select>
-                                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500 dark:text-gray-300">
-                                    <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Cache Information -->
-                        <div class="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
-                            <h3 class="text-md font-medium mb-2 text-gray-700 dark:text-gray-200">Cache Information</h3>
-                            <div class="text-sm text-gray-600 dark:text-gray-300 space-y-1">
-                                <p>Downloaded Files: <span id="cache-file-count">{{ cache_stats.total_files|default(0) }}</span></p>
-                                <p>Total Size: <span id="cache-size">{{ cache_stats.total_size|default(0)|filesizeformat }}</span></p>
+                                </details>
                             </div>
                             
-                            <!-- Cache Control Buttons -->
-                            <div class="grid grid-cols-2 gap-2 mt-3">
-                                <button id="reload-cache-btn" class="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:bg-blue-700 dark:hover:bg-blue-600 dark:focus:ring-blue-500 dark:focus:ring-offset-gray-800">
-                                    Reload Cache
-                                </button>
-                                <button id="reset-cache-btn" class="px-3 py-1.5 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:bg-red-700 dark:hover:bg-red-600 dark:focus:ring-red-500 dark:focus:ring-offset-gray-800">
-                                    Reset Cache
-                                </button>
+                            <!-- Level filter -->
+                            <div class="filter-group">
+                                <details class="mb-2">
+                                    <summary class="cursor-pointer text-sm font-medium text-gray-700 dark:text-gray-200 mb-2 select-none">Level</summary>
+                                    <div class="pl-4 pt-2 space-y-1 max-h-48 overflow-y-auto">
+                                        {% for level in levels %}
+                                        <label class="flex items-center space-x-2">
+                                            <input type="checkbox" name="levels" value="{{ level }}" class="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded">
+                                            <span class="text-sm text-gray-700 dark:text-gray-200">{{ level }}</span>
+                                        </label>
+                                        {% endfor %}
+                                    </div>
+                                </details>
                             </div>
+                            
+                            <!-- Year filter -->
+                            <div class="filter-group">
+                                <details class="mb-2">
+                                    <summary class="cursor-pointer text-sm font-medium text-gray-700 dark:text-gray-200 mb-2 select-none">Year</summary>
+                                    <div class="pl-4 pt-2 space-y-1 max-h-48 overflow-y-auto">
+                                        {% for year in years %}
+                                        <label class="flex items-center space-x-2">
+                                            <input type="checkbox" name="years" value="{{ year }}" class="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded">
+                                            <span class="text-sm text-gray-700 dark:text-gray-200">{{ year }}</span>
+                                        </label>
+                                        {% endfor %}
+                                    </div>
+                                </details>
+                            </div>
+                            
+                            <!-- Status filter -->
+                            <div>
+                                <label for="downloaded-filter" class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Status</label>
+                                <select name="downloaded" id="downloaded-filter" class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 px-3 py-2">
+                                    <option value="">All Status</option>
+                                    <option value="true">Downloaded</option>
+                                    <option value="partial">Partially Downloaded</option>
+                                    <option value="false">Not Downloaded</option>
+                                </select>
+                            </div>
+                            
+                            <!-- Hidden sort fields -->
+                            <input type="hidden" name="sort_by" value="year">
+                            <input type="hidden" name="sort_dir" value="desc">
+                        </div>
+                    </form>
+                    
+                    <!-- Cache Information -->
+                    <div class="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4" id="cache-info">
+                        <h3 class="text-md font-medium mb-2 text-gray-700 dark:text-gray-200">Cache Information</h3>
+                        <div hx-get="/cache-stats" hx-trigger="load" hx-target="this" hx-swap="innerHTML">
+                            <div class="text-sm text-gray-600 dark:text-gray-300 space-y-1">
+                                <p>Downloaded Files: <span>{{ cache_stats.total_files|default(0) }}</span></p>
+                                <p>Total Size: <span>{{ cache_stats.total_size|default(0)|filesizeformat }}</span></p>
+                            </div>
+                        </div>
+                        
+                        <!-- Cache Control Buttons -->
+                        <div class="grid grid-cols-2 gap-2 mt-3">
+                            <button hx-post="/refresh-cache" 
+                                    hx-target="#cache-info div"
+                                    class="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:bg-blue-700 dark:hover:bg-blue-600">
+                                Reload Cache
+                            </button>
+                            <button hx-post="/reset-cache" 
+                                    hx-target="#cache-info div" 
+                                    hx-confirm="Are you sure you want to reset the cache? This will forget all downloaded files (but won't delete the actual files)."
+                                    class="px-3 py-1.5 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:bg-red-700 dark:hover:bg-red-600">
+                                Reset Cache
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -184,7 +141,7 @@
                             <label for="select-all" class="text-sm font-medium text-gray-700 dark:text-gray-200">Select All</label>
                         </div>
                         <div>
-                            <button id="download-selected" class="px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-emerald-600 dark:hover:bg-emerald-500 dark:focus:ring-emerald-400 dark:focus:ring-offset-gray-800" disabled>
+                            <button id="download-selected" class="px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
                                 Download Selected
                             </button>
                         </div>
@@ -196,79 +153,27 @@
                     </div>
                     {% endif %}
                     
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                            <thead class="bg-gray-50 dark:bg-gray-700">
-                                <tr>
-                                    <th scope="col" class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                        <span class="sr-only">Select All</span>
-                                    </th>
-                                    <th scope="col" class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer sortable" data-sort-by="subject">
-                                        <div class="flex items-center">
-                                            <span>Subject</span>
-                                            <span class="sort-icon ml-1">
-                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                                                </svg>
-                                            </span>
-                                        </div>
-                                    </th>
-                                    <th scope="col" class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer sortable" data-sort-by="level">
-                                        <div class="flex items-center">
-                                            <span>Level</span>
-                                            <span class="sort-icon ml-1">
-                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                                                </svg>
-                                            </span>
-                                        </div>
-                                    </th>
-                                    <th scope="col" class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer sortable" data-sort-by="year">
-                                        <div class="flex items-center">
-                                            <span>Year</span>
-                                            <span class="sort-icon ml-1">
-                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                                                </svg>
-                                            </span>
-                                        </div>
-                                    </th>
-                                    <th scope="col" class="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                        PDF Packet
-                                        <div class="inline-block ml-1">
-                                            <input id="select-all-packets" type="checkbox" class="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded">
-                                        </div>
-                                    </th>
-                                    <th scope="col" class="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                        ZIP Data Files
-                                        <div class="inline-block ml-1">
-                                            <input id="select-all-datafiles" type="checkbox" class="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded">
-                                        </div>
-                                    </th>
-                                    <th scope="col" class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer sortable" data-sort-by="status">
-                                        <div class="flex items-center">
-                                            <span>Status</span>
-                                            <span class="sort-icon ml-1">
-                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                                                </svg>
-                                            </span>
-                                        </div>
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody id="contests-table-body" class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                                <!-- Contest rows will be loaded here -->
-                                <tr>
-                                    <td colspan="7" class="px-6 py-4 text-center text-gray-700 dark:text-gray-300">
-                                        <div class="flex justify-center">
-                                            <div class="spinner mr-2"></div>
-                                            Loading contests...
-                                        </div>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                    <div class="overflow-x-auto relative">
+                        <div id="loading-indicator" class="htmx-indicator absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-10">
+                            <div class="flex items-center">
+                                <div class="spinner mr-2"></div>
+                                <span>Loading...</span>
+                            </div>
+                        </div>
+                        <div id="table-container"
+                             hx-get="/contests"
+                             hx-trigger="load"
+                             hx-target="this"
+                             hx-swap="innerHTML"
+                             hx-include="#filter-form">
+                            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 table-fixed">
+                                <thead class="bg-gray-50 dark:bg-gray-700">
+                                    <tr>
+                                        <th class="px-4 py-3 text-center text-sm text-gray-500 dark:text-gray-300">Loading…</th>
+                                    </tr>
+                                </thead>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -296,6 +201,14 @@
             to { transform: rotate(360deg); }
         }
         
+        .htmx-indicator {
+            display: none;
+        }
+        
+        .htmx-request .htmx-indicator {
+            display: block;
+        }
+        
         .status-badge {
             @apply px-2 py-1 text-xs font-medium rounded-full;
         }
@@ -312,60 +225,8 @@
             @apply bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-100;
         }
         
-        /* Filter tag styles */
-        /* 
-        .filter-tag {
-            @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-100 border border-gray-300 dark:border-gray-500 m-0.5;
-            transition: all 0.15s;
-        }
-        */
-        
-        .filter-tag:hover {
-            @apply bg-gray-300 dark:bg-gray-500;
-        }
-        
-        /*
-        .filter-tag .remove-tag {
-            @apply ml-1.5 h-4 w-4 rounded-full inline-flex items-center justify-center bg-gray-300 text-gray-600 hover:bg-gray-400 hover:text-gray-700 dark:bg-gray-500 dark:text-gray-200 dark:hover:bg-gray-400 dark:hover:text-gray-100 focus:outline-none;
-            transition: all 0.15s;
-        }
-        */
-
-        /* Keep hover style for remove tag, base style is now inline in JS */
-        .filter-tag .remove-tag:hover {
-             @apply hover:bg-gray-400 hover:text-gray-700 dark:hover:bg-gray-400 dark:hover:text-gray-100;
-        }
-        
-        /* Sorting styles */
-        .sortable {
-            position: relative;
-        }
-        
-        .sort-icon {
-            opacity: 0.5;
-            transition: all 0.2s;
-        }
-        
-        .sortable:hover .sort-icon {
-            opacity: 1;
-        }
-        
-        .sort-asc .sort-icon svg, 
-        .sort-desc .sort-icon svg {
-            opacity: 1;
-            @apply text-emerald-500 dark:text-emerald-400;
-        }
-        
-        .sort-asc .sort-icon {
-            transform: rotate(180deg);
-        }
-        
-        .dropdown-toggle {
-            transition: all 0.2s;
-        }
-        
-        .dropdown-active .dropdown-toggle {
-            transform: rotate(180deg);
+        .sortable:hover {
+            @apply bg-gray-100 dark:bg-gray-600;
         }
     </style>
 
