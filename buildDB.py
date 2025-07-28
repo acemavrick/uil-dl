@@ -336,9 +336,6 @@ def create_database(json_file: str, db_path: str, interactive: bool = True):
 
 if __name__ == '__main__':
     try:
-        # Example usage:
         create_database('info.json', 'info.db', interactive=True)
     except Exception as e:
-        # The logger in create_database should have already logged specifics.
-        # This catches exceptions that might cause create_database to exit prematurely.
         logger.critical(f"Database creation process failed: {e}")

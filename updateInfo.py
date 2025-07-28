@@ -344,17 +344,25 @@ def main():
         # Scrape data
         scraped_data = scrape_data()
         
-        # Load existing data if available
+        # Load existing data and determine version
+        version = 1
+        old_data = None
         try:
             with open("info.json", "r") as f:
                 old_data = json.load(f)
             logger.info("Found existing info.json file")
+            if isinstance(old_data, dict) and isinstance(old_data.get('version'), int):
+                version = old_data['version'] + 1
+                logger.info(f"Incrementing version from {old_data.get('version')} to {version}")
+            else:
+                logger.info("No valid 'version' key found in info.json, setting version to 1.")
         except (FileNotFoundError, json.JSONDecodeError):
+            logger.info("No existing info.json file found or it is invalid. Setting version to 1.")
             old_data = None
-            logger.info("No existing info.json file found or invalid JSON")
         
         # Process and merge data
         final_data = merge_with_existing(scraped_data, old_data)
+        final_data['version'] = version
         
         # Write to file
         with open("info.json", "w") as f:
