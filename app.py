@@ -12,33 +12,43 @@ from models import db, Contest
 # build tailwindcss
 # os.system("npx tailwindcss -i ./static/css/in.css -o ./static/css/out.css")
 
+# Load configuration
+CONFIG_FILE = Path("data/config.json")
+config_data = {}
+if CONFIG_FILE.exists():
+    with open(CONFIG_FILE, 'r') as f:
+        config_data = json.load(f)
+
+DOWNLOADS_DIR = Path(config_data.get('download_dir', 'downloads'))
+DOWNLOADS_DIR.mkdir(parents=True, exist_ok=True)
+
+LOGS_DIR = Path(config_data.get('logs_dir', 'logs'))
+LOGS_DIR.mkdir(parents=True, exist_ok=True)
+
 # Configure logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 # Create logs directory if it doesn't exist
-os.makedirs('logs', exist_ok=True)
+os.makedirs(LOGS_DIR, exist_ok=True)
 
-file_handler = logging.FileHandler('logs/dev.log')
+file_handler = logging.FileHandler(LOGS_DIR / 'dev.log')
 file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
-logger.addHandler(file_handler)
 console_handler = logging.StreamHandler()
 console_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+
+logger.addHandler(file_handler)
 logger.addHandler(console_handler)
 
 # Create Flask app
-myapp = Flask(__name__)
-myapp.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{os.path.abspath("info.db")}'
-myapp.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db.init_app(myapp)
+app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{os.path.abspath("data/info.db")}'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db.init_app(app)
 
 # Create tables within app context
-with myapp.app_context():
+with app.app_context():
     db.create_all()
-
-# Ensure downloads directory exists
-DOWNLOADS_DIR = Path('downloads')
-DOWNLOADS_DIR.mkdir(exist_ok=True)
 
 # Create a semaphore to limit concurrent downloads
 download_semaphore = threading.Semaphore(4)  # Maximum 4 concurrent downloads
@@ -193,7 +203,7 @@ def generate_cache_key(subject, level, year, link_type):
     base_key = f"{subject.replace(' ', '_')}_{year}_{level.replace(' ', '_')}"
     return f"{base_key}_{link_type}"
 
-@myapp.route('/')
+@app.route('/')
 def index():
     """Render the main page."""
     logger.info("Loading main page")
@@ -217,7 +227,7 @@ def index():
         cache_stats = download_cache.get_stats()
         return render_template('index.html', error=str(e), contests=[], cache_stats=cache_stats)
 
-@myapp.route('/download/<int:item_id>/<link_type>', methods=['GET', 'POST'])
+@app.route('/download/<int:item_id>/<link_type>', methods=['GET', 'POST'])
 def download_file(item_id, link_type):
     """Download a file for a specific contest, identified by link_type (pdf, zip, other)."""
     logger.info(f"Download requested for contest ID {item_id}, link type: {link_type}")
@@ -324,7 +334,7 @@ def download_file(item_id, link_type):
             """
         return jsonify({"error": str(e)}), 500
 
-@myapp.route('/refresh-cache', methods=['GET', 'POST'])
+@app.route('/refresh-cache', methods=['GET', 'POST'])
 def refresh_cache():
     """Refresh the download cache."""
     logger.info("Refreshing download cache")
@@ -340,7 +350,7 @@ def refresh_cache():
     </div>
     """
 
-@myapp.route('/reset-cache', methods=['GET', 'POST'])
+@app.route('/reset-cache', methods=['GET', 'POST'])
 def reset_cache():
     """Reset the download cache (forget all downloads)."""
     logger.info("Resetting download cache")
@@ -356,7 +366,7 @@ def reset_cache():
     </div>
     """
 
-@myapp.route('/cache-stats')
+@app.route('/cache-stats')
 def get_cache_stats():
     """Get cache statistics for the sidebar."""
     cache_stats = download_cache.get_stats()
@@ -367,7 +377,7 @@ def get_cache_stats():
     </div>
     """
 
-@myapp.route('/contests', methods=['GET', 'POST'])
+@app.route('/contests', methods=['GET', 'POST'])
 def get_contests_htmx():
     """Get contests formatted for HTMX table body."""
     try:
@@ -470,7 +480,7 @@ def get_contests_htmx():
         logger.error(f"Error in contests route: {e}")
         return f'<tbody><tr><td colspan="7" class="text-center text-red-600">Error loading contests: {str(e)}</td></tr></tbody>'
 
-@myapp.route('/api/contests')
+@app.route('/api/contests')
 def get_contests():
     """API endpoint to get contest data based on filters."""
     try:
@@ -543,7 +553,7 @@ def get_contests():
         logger.error(f"Error in API route: {e}")
         return jsonify({"error": str(e)}), 500
 
-@myapp.route('/api/stats')
+@app.route('/api/stats')
 def get_stats():
     """Get download cache statistics."""
     try:
@@ -622,7 +632,7 @@ def _perform_download(contest_item, link_type):
             return {"item_id": contest_item.id, "link_type": link_type, "downloaded": False, "reason": str(e)}
 
 
-@myapp.route('/batch-download', methods=['POST'])
+@app.route('/batch-download', methods=['POST'])
 def batch_download():
     """Endpoint to download multiple selected files in one request."""
     logger.info("Batch download request received")
@@ -655,4 +665,4 @@ def batch_download():
 
 if __name__ == '__main__':
     logger.info("Starting UIL Download Flask application")
-    myapp.run(debug=False, port=5001) 
+    app.run(debug=False, port=5001) 

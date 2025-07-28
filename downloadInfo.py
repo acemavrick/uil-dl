@@ -5,7 +5,9 @@ import tempfile
 import logging
 from pathlib import Path
 
-LINK = "https://raw.githubusercontent.com/acemavrick/uil-dl/refs/heads/main/info.json"
+# LINK = "https://raw.githubusercontent.com/acemavrick/uil-dl/refs/heads/data/info.json"
+LINK = "https://raw.githubusercontent.com/acemavrick/uil-dl/refs/heads/improvements/data/info.json"
+# LINK = "http://localhost:8000/info.json"
 
 # configure basic logging
 logging.basicConfig(
@@ -17,7 +19,7 @@ logger = logging.getLogger(__name__)
 def download_info(path: Path):
     """Download the latest info.json from GitHub."""
     try:
-        logger.info(f"Downloading info.json to {path}")
+        logger.info(f"Downloading info.json from {LINK} ----> {path}")
         response = requests.get(LINK, timeout=10)
         response.raise_for_status()
         with open(path, "w") as f:
@@ -40,8 +42,8 @@ def update_info_from_online():
         online_info = json.load(f)
     
     # load the local info.json, if it exists
-    if Path("info.json").exists():
-        with open("info.json", "r") as f:
+    if Path("data/info.json").exists():
+        with open("data/info.json", "r") as f:
             local_info = json.load(f)
         
         local_version = local_info.get("version", 0)
@@ -51,7 +53,7 @@ def update_info_from_online():
         if local_version < online_version:
             logger.info(f"Updating local: {local_version} -> {online_version}")
             # update the local info.json
-            with open("info.json", "w") as f:
+            with open("data/info.json", "w") as f:
                 json.dump(online_info, f, indent=4)
             return True
         else:
@@ -59,7 +61,7 @@ def update_info_from_online():
             return False
     else:
         logger.info("No local info.json found, creating one")
-        with open("info.json", "w") as f:
+        with open("data/info.json", "w") as f:
             json.dump(online_info, f, indent=4)
         return True
 

@@ -1,24 +1,23 @@
-import downloadInfo
 import os
 import buildDB
+import downloadInfo
+from pathlib import Path
 
-# check for info updates
-updated = downloadInfo.update_info_from_online()
+# update info.json and info.db
+print("Checking for updates to info.json...")
 
-print()
-if updated:
+# update and build database if needed
+if downloadInfo.update_info_from_online():
     print("Updated info.json")
-    buildDB.create_database("info.json", "info.db", interactive=False)
-    print("Database created with updated info")
+    buildDB.create_database("data/info.json", "data/info.db", interactive=False)
 else:
     print("No update needed to info.json")
 
+# check if info.db exists, if not, create it
+if not Path("data/info.db").exists():
+    print("info.db not found, creating it...")
+    buildDB.create_database("data/info.json", "data/info.db", interactive=False)
 
-# check if there is a databse. if not, create it.
-if not os.path.exists("info.db"):
-    print("No database found, creating one")
-    buildDB.create_database("info.json", "info.db", interactive=False)
-
-# run the app
+# start flask server
 import app
-app.myapp.run(debug=False, port=5001)
+app.app.run(debug=False, port=5001)

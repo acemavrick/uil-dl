@@ -195,7 +195,7 @@ def _load_and_parse_json_data(
         logger.error(f"Error loading or parsing JSON data from {json_file_path}: {e}")
         return False
 
-def create_database(json_file: str, db_path: str, interactive: bool = True):
+def create_database(info_json_path='data/info.json', db_path='data/info.db', interactive=True):
     if os.path.exists(db_path):
         logger.info(f"Removing existing database at {db_path}")
         try:
@@ -207,15 +207,15 @@ def create_database(json_file: str, db_path: str, interactive: bool = True):
     parsed_data_store: Dict[str, Any] = {} # Holds all data from _load_and_parse_json_data
 
     while True: # Main loop for parsing and user confirmation
-        if not _load_and_parse_json_data(json_file, parsed_data_store):
+        if not _load_and_parse_json_data(info_json_path, parsed_data_store):
             if interactive:
                 choice = input(
-                    f"{Fore.RED}Failed to load/parse {json_file}. "
+                    f"{Fore.RED}Failed to load/parse {info_json_path}. "
                     f"Do you want to fix the file and try again? (y/n): {Style.RESET_ALL}"
                 ).lower().strip()
                 if choice == 'y':
                     input(
-                        f"{Fore.YELLOW}Okay, please make any necessary changes to {json_file} now. \n"
+                        f"{Fore.YELLOW}Okay, please make any necessary changes to {info_json_path} now. \n"
                         f"After saving your changes, press Enter here to re-process...{Style.RESET_ALL} "
                     )
                     continue # Re-attempt parsing
@@ -223,9 +223,9 @@ def create_database(json_file: str, db_path: str, interactive: bool = True):
                     logger.error("Aborting database creation due to parsing error and user choice to not retry.")
                     return
             else:
-                logger.error(f"Aborting database creation due to parsing error in non-interactive mode from {json_file}.")
+                logger.error(f"Aborting database creation due to parsing error in non-interactive mode from {info_json_path}.")
                 # In non-interactive, a parsing failure is fatal for this function.
-                raise ValueError(f"Failed to parse {json_file} in non-interactive mode.")
+                raise ValueError(f"Failed to parse {info_json_path} in non-interactive mode.")
 
         # Parsing was successful, display stats
         stats = parsed_data_store['stats']
@@ -240,7 +240,7 @@ def create_database(json_file: str, db_path: str, interactive: bool = True):
         logger.info(f"  - Level abbrevs not in titleAbbrevs: {stats['missing_levels']}")
 
         if interactive:
-            print(f"{Fore.YELLOW}Summary of data parsed from {Fore.CYAN}{json_file}{Style.RESET_ALL}:")
+            print(f"{Fore.YELLOW}Summary of data parsed from {Fore.CYAN}{info_json_path}{Style.RESET_ALL}:")
             print(f"  - {Fore.GREEN}{stats['total_contests']} unique contests identified.{Style.RESET_ALL}")
             print(f"    - {stats['with_pdf_link']} have a PDF link.")
             print(f"    - {stats['with_zip_link']} have a ZIP link.")
@@ -254,15 +254,15 @@ def create_database(json_file: str, db_path: str, interactive: bool = True):
             
             user_choice = input(
                 f"{Fore.GREEN}Proceed with building the database using this data? {Style.RESET_ALL}"
-                f"({Fore.CYAN}y{Style.RESET_ALL}es / {Fore.CYAN}n{Style.RESET_ALL}o, re-edit {json_file} and re-parse / {Fore.CYAN}q{Style.RESET_ALL}uit): "
+                f"({Fore.CYAN}y{Style.RESET_ALL}es / {Fore.CYAN}n{Style.RESET_ALL}o, re-edit {info_json_path} and re-parse / {Fore.CYAN}q{Style.RESET_ALL}uit): "
             ).lower().strip()
 
             if user_choice == 'y':
-                logger.info(f"User confirmed parsed data. Proceeding to build database from {json_file}.")
+                logger.info(f"User confirmed parsed data. Proceeding to build database from {info_json_path}.")
                 break # Exit while loop and proceed to DB operations
             elif user_choice == 'n':
                 input(
-                    f"{Fore.YELLOW}Okay, please make any necessary changes to {json_file} now. \n"
+                    f"{Fore.YELLOW}Okay, please make any necessary changes to {info_json_path} now. \n"
                     f"After saving your changes, press Enter here to re-process...{Style.RESET_ALL} "
                 )
                 # Loop continues, _load_and_parse_json_data will re-run
@@ -336,6 +336,6 @@ def create_database(json_file: str, db_path: str, interactive: bool = True):
 
 if __name__ == '__main__':
     try:
-        create_database('info.json', 'info.db', interactive=True)
+        create_database('data/info.json', 'data/info.db', interactive=True)
     except Exception as e:
         logger.critical(f"Database creation process failed: {e}")
