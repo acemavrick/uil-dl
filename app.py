@@ -9,6 +9,7 @@ from werkzeug.utils import secure_filename
 from sqlalchemy import func
 from models import db, Contest
 from buildDB import repopulate_database
+from downloadInfo import update_info_from_online
 
 # build tailwindcss
 # os.system("npx tailwindcss -i ./static/css/in.css -o ./static/css/out.css")
@@ -46,6 +47,22 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{os.path.abspath("data/info.db")}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
+
+def get_database_version(db_path='data/info.db'):
+    """Get the database version from the metadata table."""
+    import sqlite3
+    try:
+        with sqlite3.connect(db_path) as conn:
+            c = conn.cursor()
+            c.execute('SELECT value FROM metadata WHERE key = ?', ('version',))
+            result = c.fetchone()
+            return int(result[0]) if result else None
+    except sqlite3.Error as e:
+        logger.error(f"Error getting database version: {e}")
+        return None
+    except (ValueError, TypeError) as e:
+        logger.error(f"Error parsing database version: {e}")
+        return None
 
 # Create tables within app context
 with app.app_context():
@@ -215,43 +232,51 @@ def index():
         levels = [l[0] for l in db.session.query(Contest.level).distinct().order_by(Contest.level).all()]
         years = [y[0] for y in db.session.query(Contest.year).distinct().order_by(Contest.year.desc()).all()]
 
-        # Get cache stats
+        # Get cache stats and database version
         cache_stats = download_cache.get_stats()
+        db_version = get_database_version()
         
         return render_template('index.html',
                                subjects=subjects,
                                levels=levels,
                                years=years,
                                cache_stats=cache_stats,
-                               download_dir_absolute=DOWNLOADS_DIR.absolute())
+                               download_dir_absolute=DOWNLOADS_DIR.absolute(),
+                               info_version=db_version,
+                               total_contest_count=db.session.query(Contest).count())
     except Exception as e:
         logger.error(f"Error in index route: {e}")
-        # Get cache stats even when there's an error
+        # Get cache stats and database version even when there's an error
         cache_stats = download_cache.get_stats()
-        return render_template('index.html', error=str(e), contests=[], cache_stats=cache_stats)
+        db_version = get_database_version()
+        return render_template('index.html', error=str(e), contests=[], cache_stats=cache_stats, database_version=db_version)
 
-@app.route('/rebuild-db', methods=['POST'])
-def rebuild_db():
-    """Rebuilds the database from the source JSON file without restarting the app."""
-    logger.info("Database rebuild requested.")
+@app.route('/refresh-info', methods=['POST'])
+def refresh_info():
+    """Refreshes the contest information from the UIL website."""
+    logger.info("Refresh info requested.")
     
     if not db_rebuild_lock.acquire(blocking=False):
-        logger.warning("Database rebuild already in progress.")
-        return "A database rebuild is already in progress. Please wait.", 503
+        logger.warning("Refresh info already in progress.")
+        return "A refresh info process is already in progress. Please wait.", 503
 
     try:
-        logger.info("Starting database repopulation process.")
-        # Get the database path from the Flask app config
-        db_path = app.config['SQLALCHEMY_DATABASE_URI'].replace('sqlite:///', '')
+        logger.info("Starting refresh info process.")
         
-        # Call the safe repopulation function
-        count = repopulate_database(db_path=db_path)
+        # Call the update_info_from_online function
+        updated = update_info_from_online()
         
-        logger.info(f"Database rebuilt successfully. Loaded {count} entries.")
-        return f"Database rebuilt successfully. Loaded {count} entries.", 200
+        if updated:
+            logger.info("Info refreshed successfully - new version downloaded.")
+            # rebuild the database
+            repopulate_database(db_path=app.config['SQLALCHEMY_DATABASE_URI'].replace('sqlite:///', ''))
+            return "Info refreshed successfully - new version downloaded. Database rebuilt.", 200
+        else:
+            logger.info("Info refresh completed - no update needed.")
+            return "Info refresh completed - no update needed.", 200
     except Exception as e:
-        logger.error(f"Failed to rebuild database: {e}", exc_info=True)
-        return f"Failed to rebuild database: {str(e)}", 500
+        logger.error(f"Failed to refresh info: {e}", exc_info=True)
+        return f"Failed to refresh info: {str(e)}", 500
     finally:
         db_rebuild_lock.release()
 
@@ -601,12 +626,23 @@ def get_stats():
             "total_files_available": total_files,
             "downloaded_files": cache_stats['total_files'],
             "download_size_bytes": cache_stats['total_size'],
-            "download_percentage": (cache_stats['total_files'] / total_files) * 100 if total_files > 0 else 0
+            "download_percentage": (cache_stats['total_files'] / total_files) * 100 if total_files > 0 else 0,
+            "database_version": get_database_version()
         }
         
         return jsonify(stats)
     except Exception as e:
         logger.error(f"Error in stats route: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/version')
+def get_version():
+    """Get the database version."""
+    try:
+        version = get_database_version()
+        return jsonify({"database_version": version})
+    except Exception as e:
+        logger.error(f"Error in version route: {e}")
         return jsonify({"error": str(e)}), 500
 
 # Helper function to perform an individual download (shared by single and batch routes)
@@ -692,5 +728,6 @@ def batch_download():
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
-    logger.info("Starting UIL Download Flask application")
+    logger.error("Please use the main.py script to start the application.")
+    exit(1)
     app.run(debug=False, port=5001) 

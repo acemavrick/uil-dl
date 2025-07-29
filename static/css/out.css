@@ -332,6 +332,9 @@
   .min-w-full {
     min-width: 100%;
   }
+  .flex-1 {
+    flex: 1;
+  }
   .table-fixed {
     table-layout: fixed;
   }

@@ -22,24 +22,28 @@
                     <!-- Notes -->
                     <div class="mb-4 py-3 rounded-md border-b border-gray-200 dark:border-gray-700">
                         <p class="text-sm text-gray-600 dark:text-gray-300">
-                            <span class="font-bold">Note:</span> Some CS Programming data zips contain the packets, which is why some don't have "packet" downloads.
-                            Furthermore, there may be "other" files, which are just links that cannot be downloaded by this tool.
-                            <br><br>
+                            <span class="font-bold">Info Version: </span> {{ info_version }}
+                            <br>
+                            <span class="font-bold">Total Contests: </span> {{ total_contest_count }} 
+                            <br>
+                            <br>
                             <span class="font-bold">Your downloads are stored in:</span>
                             <br>
                             <code class="block p-2 mt-1 bg-gray-100 dark:bg-gray-700 rounded text-xs font-mono text-gray-800 dark:text-gray-200 overflow-x-auto">{{ download_dir_absolute }}</code>
                             <br>
                         <div class="mt-4">
-                            <button 
-                                class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 px-4 rounded-md text-sm transition-colors duration-200 flex items-center justify-center"
-                                id="rebuild-db-btn"
-                                hx-post="/rebuild-db"
-                                hx-swap="none"
-                                hx-indicator="#rebuild-db-btn .spinner-small"
-                                hx-disabled-elt="this">
-                                <span class="button-text mr-2">Rebuild Database</span>
-                                <div class="spinner-small htmx-indicator"></div>
-                            </button>
+                            <div class="flex flex-wrap gap-2">
+                                <button 
+                                    class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md text-sm transition-colors duration-200 flex items-center justify-center"
+                                    id="refresh-info-btn"
+                                    hx-post="/refresh-info"
+                                    hx-swap="none"
+                                    hx-indicator="#refresh-info-btn .spinner-small"
+                                    hx-disabled-elt="this">
+                                    <span class="button-text mr-2">Refresh Info</span>
+                                    <div class="spinner-small htmx-indicator"></div>
+                                </button>
+                            </div>
                         </div>
                         </p>
                     </div>
@@ -256,16 +260,16 @@
 
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const rebuildBtn = document.getElementById('rebuild-db-btn');
-        if (rebuildBtn) {
-            const buttonText = rebuildBtn.querySelector('.button-text');
+        const refreshInfoBtn = document.getElementById('refresh-info-btn');
+        if (refreshInfoBtn) {
+            const buttonText = refreshInfoBtn.querySelector('.button-text');
 
-            rebuildBtn.addEventListener('htmx:beforeRequest', function() {
-                if (buttonText) buttonText.textContent = 'Building database...';
+            refreshInfoBtn.addEventListener('htmx:beforeRequest', function() {
+                if (buttonText) buttonText.textContent = '...';
             });
 
-            rebuildBtn.addEventListener('htmx:afterRequest', function(event) {
-                if (buttonText) buttonText.textContent = 'Rebuild Database';
+            refreshInfoBtn.addEventListener('htmx:afterRequest', function(event) {
+                if (buttonText) buttonText.textContent = 'Refresh Info';
 
                 if (event.detail.successful) {
                     alert('Success: ' + event.detail.xhr.responseText);

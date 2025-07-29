@@ -79,6 +79,7 @@ def _load_and_parse_json_data(
     parsed_data_store['subjectDict'] = {}
     parsed_data_store['titleAbbrevs'] = {}
     parsed_data_store['contests'] = []
+    parsed_data_store['version'] = None  # add version tracking
     parsed_data_store['stats'] = {
         'total_contests': 0, 'with_pdf_link': 0, 'with_zip_link': 0, 'with_other_link': 0,
         'invalid_years': 0, 'invalid_keys': 0,
@@ -103,6 +104,9 @@ def _load_and_parse_json_data(
             
         parsed_data_store['subjectDict'].update(data['subjectDict'])
         parsed_data_store['titleAbbrevs'].update(data['titleAbbrevs'])
+        
+        # extract version if present
+        parsed_data_store['version'] = data.get('version', 1)  # default to 1 if not present
         
         current_stats = parsed_data_store['stats']
         # In-memory store to merge links for the same contest
@@ -277,13 +281,14 @@ def create_database(info_json_path='data/info.json', db_path='data/info.db', int
 
     # ----- Database Operations -----
     contests_to_insert = parsed_data_store['contests']
+    version = parsed_data_store['version']
 
     try:
         with sqlite3.connect(db_path) as conn:
             c = conn.cursor()
-            logger.info("Creating database table...")
+            logger.info("Creating database tables...")
             try:
-                # A single table to hold all contest information
+                # contests table
                 c.execute('''CREATE TABLE contests (
                     id INTEGER PRIMARY KEY,
                     subject TEXT NOT NULL,
@@ -294,13 +299,19 @@ def create_database(info_json_path='data/info.json', db_path='data/info.db', int
                     other_link TEXT,
                     UNIQUE(subject, level, year)
                 )''')
+                
+                # metadata table for version and other config
+                c.execute('''CREATE TABLE metadata (
+                    key TEXT PRIMARY KEY,
+                    value TEXT NOT NULL
+                )''')
             except sqlite3.Error as e:
-                logger.error(f"Error creating database table: {e}")
+                logger.error(f"Error creating database tables: {e}")
                 raise
 
             logger.info(f"Inserting {len(contests_to_insert)} contest entries...")
             try:
-                # Prepare data for executemany
+                # insert contest data
                 insert_data = [
                     (
                         entry.subject, entry.level, entry.year,
@@ -311,8 +322,13 @@ def create_database(info_json_path='data/info.json', db_path='data/info.db', int
                     'INSERT INTO contests (subject, level, year, pdf_link, zip_link, other_link) VALUES (?, ?, ?, ?, ?, ?)',
                     insert_data
                 )
+                
+                # insert version metadata
+                c.execute('INSERT INTO metadata (key, value) VALUES (?, ?)', ('version', str(version)))
+                logger.info(f"Database version set to: {version}")
+                
             except sqlite3.Error as e:
-                logger.error(f"Error inserting contest data: {e}")
+                logger.error(f"Error inserting data: {e}")
                 if "UNIQUE constraint failed" in str(e): 
                     logger.error("This usually means duplicate contest entries were generated from the source data.")
                 raise
@@ -336,7 +352,7 @@ def create_database(info_json_path='data/info.json', db_path='data/info.db', int
 
 def repopulate_database(info_json_path='data/info.json', db_path='data/info.db'):
     """
-    Repopulates the 'contests' table with fresh data from the JSON file
+    Repopulates both 'contests' and 'metadata' tables with fresh data from the JSON file
     without dropping the table or the database file. This is safe to call
     on a running application as it doesn't delete the DB file.
     """
@@ -348,6 +364,7 @@ def repopulate_database(info_json_path='data/info.json', db_path='data/info.db')
         raise ValueError(f"Failed to parse {info_json_path}")
 
     contests_to_insert = parsed_data_store['contests']
+    version = parsed_data_store['version']
     
     try:
         # The 'with' statement handles the transaction (commit/rollback)
@@ -356,6 +373,9 @@ def repopulate_database(info_json_path='data/info.json', db_path='data/info.db')
             
             logger.info("Deleting all existing entries from 'contests' table.")
             c.execute('DELETE FROM contests')
+            
+            logger.info("Updating metadata...")
+            c.execute('INSERT OR REPLACE INTO metadata (key, value) VALUES (?, ?)', ('version', str(version)))
             
             logger.info(f"Inserting {len(contests_to_insert)} new contest entries...")
             insert_data = [
@@ -369,7 +389,7 @@ def repopulate_database(info_json_path='data/info.json', db_path='data/info.db')
                 insert_data
             )
             
-        logger.info("Database repopulation completed successfully.")
+        logger.info(f"Database repopulation completed successfully. Version: {version}")
         return len(contests_to_insert)
             
     except sqlite3.Error as e:
