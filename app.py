@@ -8,6 +8,7 @@ from flask import Flask, render_template, request, jsonify, send_file
 from werkzeug.utils import secure_filename
 from sqlalchemy import func
 from models import db, Contest
+from buildDB import repopulate_database
 
 # build tailwindcss
 # os.system("npx tailwindcss -i ./static/css/in.css -o ./static/css/out.css")
@@ -52,6 +53,7 @@ with app.app_context():
 
 # Create a semaphore to limit concurrent downloads
 download_semaphore = threading.Semaphore(4)  # Maximum 4 concurrent downloads
+db_rebuild_lock = threading.Lock()
 
 # ---------- per-file locking utilities ----------
 _download_locks: dict[str, threading.Lock] = {}
@@ -220,12 +222,38 @@ def index():
                                subjects=subjects,
                                levels=levels,
                                years=years,
-                               cache_stats=cache_stats)
+                               cache_stats=cache_stats,
+                               download_dir_absolute=DOWNLOADS_DIR.absolute())
     except Exception as e:
         logger.error(f"Error in index route: {e}")
         # Get cache stats even when there's an error
         cache_stats = download_cache.get_stats()
         return render_template('index.html', error=str(e), contests=[], cache_stats=cache_stats)
+
+@app.route('/rebuild-db', methods=['POST'])
+def rebuild_db():
+    """Rebuilds the database from the source JSON file without restarting the app."""
+    logger.info("Database rebuild requested.")
+    
+    if not db_rebuild_lock.acquire(blocking=False):
+        logger.warning("Database rebuild already in progress.")
+        return "A database rebuild is already in progress. Please wait.", 503
+
+    try:
+        logger.info("Starting database repopulation process.")
+        # Get the database path from the Flask app config
+        db_path = app.config['SQLALCHEMY_DATABASE_URI'].replace('sqlite:///', '')
+        
+        # Call the safe repopulation function
+        count = repopulate_database(db_path=db_path)
+        
+        logger.info(f"Database rebuilt successfully. Loaded {count} entries.")
+        return f"Database rebuilt successfully. Loaded {count} entries.", 200
+    except Exception as e:
+        logger.error(f"Failed to rebuild database: {e}", exc_info=True)
+        return f"Failed to rebuild database: {str(e)}", 500
+    finally:
+        db_rebuild_lock.release()
 
 @app.route('/download/<int:item_id>/<link_type>', methods=['GET', 'POST'])
 def download_file(item_id, link_type):

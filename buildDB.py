@@ -334,6 +334,48 @@ def create_database(info_json_path='data/info.json', db_path='data/info.db', int
         logger.error(f"An unexpected error occurred during database operations: {e}")
         raise
 
+def repopulate_database(info_json_path='data/info.json', db_path='data/info.db'):
+    """
+    Repopulates the 'contests' table with fresh data from the JSON file
+    without dropping the table or the database file. This is safe to call
+    on a running application as it doesn't delete the DB file.
+    """
+    logger.info(f"Starting database repopulation from {info_json_path} into {db_path}...")
+    
+    parsed_data_store: Dict[str, Any] = {}
+    if not _load_and_parse_json_data(info_json_path, parsed_data_store):
+        # The _load_and_parse_json_data function logs the specific error.
+        raise ValueError(f"Failed to parse {info_json_path}")
+
+    contests_to_insert = parsed_data_store['contests']
+    
+    try:
+        # The 'with' statement handles the transaction (commit/rollback)
+        with sqlite3.connect(db_path) as conn:
+            c = conn.cursor()
+            
+            logger.info("Deleting all existing entries from 'contests' table.")
+            c.execute('DELETE FROM contests')
+            
+            logger.info(f"Inserting {len(contests_to_insert)} new contest entries...")
+            insert_data = [
+                (
+                    entry.subject, entry.level, entry.year,
+                    entry.pdf_link, entry.zip_link, entry.other_link
+                ) for entry in contests_to_insert
+            ]
+            c.executemany(
+                'INSERT INTO contests (subject, level, year, pdf_link, zip_link, other_link) VALUES (?, ?, ?, ?, ?, ?)',
+                insert_data
+            )
+            
+        logger.info("Database repopulation completed successfully.")
+        return len(contests_to_insert)
+            
+    except sqlite3.Error as e:
+        logger.error(f"A database error occurred during repopulation: {e}")
+        raise
+
 if __name__ == '__main__':
     try:
         create_database('data/info.json', 'data/info.db', interactive=True)

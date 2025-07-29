@@ -1,6 +1,4 @@
 {
     "download_dir": "downloads",
-    "download_dir_isabsolute": false,
-    "logs_dir": "data/logs",
-    "logs_dir_isabsolute": false
+    "logs_dir": "data/logs"
 }
