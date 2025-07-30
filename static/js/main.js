@@ -8,30 +8,51 @@ document.addEventListener('DOMContentLoaded', function() {
     // initializeCheckboxFilters converts change events via built-in forms; tag UI removed so skip.
     
     // simple select-all functionality - complex UI that benefits from client-side handling
-    const selectAllCheckbox = document.getElementById('select-all');
+    // Note: selectAllCheckbox is now loaded dynamically via HTMX, so we use event delegation
 
     /* ---------- sync helpers ---------- */
     function updateRowCheckbox(row) {
         const rowBox = row.querySelector('.row-checkbox');
         if (!rowBox) return;
+
+        const allFileCheckboxes = row.querySelectorAll('.packet-checkbox, .datafile-checkbox');
         const selectable = row.querySelectorAll('.packet-checkbox:not(:disabled), .datafile-checkbox:not(:disabled)');
-        if (selectable.length === 0) {
+
+        if (allFileCheckboxes.length === 0) {
+            // No downloadable files in this row.
             rowBox.disabled = true;
             rowBox.checked = false;
-            return;
+        } else if (selectable.length === 0) {
+            // All available files are already downloaded.
+            rowBox.disabled = true;
+            rowBox.checked = true;
+        } else {
+            // Some files are available for download.
+            rowBox.disabled = false;
+            rowBox.checked = Array.from(selectable).every(cb => cb.checked);
         }
-        rowBox.checked = Array.from(selectable).every(cb => cb.checked);
     }
 
     function updateSelectAll() {
-        const allSelectable = document.querySelectorAll('.packet-checkbox:not(:disabled), .datafile-checkbox:not(:disabled)');
+        const selectAllCheckbox = document.getElementById('select-all');
         if (!selectAllCheckbox) return;
-        if (allSelectable.length === 0) {
+
+        const allCheckboxes = document.querySelectorAll('.packet-checkbox, .datafile-checkbox');
+        const allSelectable = document.querySelectorAll('.packet-checkbox:not(:disabled), .datafile-checkbox:not(:disabled)');
+        
+        if (allCheckboxes.length === 0) {
+            // No downloadable files on the page at all.
             selectAllCheckbox.disabled = true;
             selectAllCheckbox.checked = false;
-            return;
+        } else if (allSelectable.length === 0) {
+            // All available files on the page are already downloaded.
+            selectAllCheckbox.disabled = true;
+            selectAllCheckbox.checked = true;
+        } else {
+            // There are still some files that can be selected.
+            selectAllCheckbox.disabled = false;
+            selectAllCheckbox.checked = Array.from(allSelectable).every(cb => cb.checked);
         }
-        selectAllCheckbox.checked = Array.from(allSelectable).every(cb => cb.checked);
     }
 
     function updateDownloadButton() {
@@ -43,18 +64,18 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     /* ----------------------------------- */
     
-    if (selectAllCheckbox) {
-        selectAllCheckbox.addEventListener('change', function() {
+    // select all functionality using event delegation (since checkbox is loaded via HTMX)
+    document.addEventListener('change', function(e) {
+        if (e.target.id === 'select-all') {
             const checkboxes = document.querySelectorAll('.packet-checkbox:not(:disabled), .datafile-checkbox:not(:disabled)');
-            checkboxes.forEach(checkbox => { checkbox.checked = this.checked; });
+            checkboxes.forEach(checkbox => { checkbox.checked = e.target.checked; });
             // toggle row-level checkboxes to match global selection
             const rowCheckboxes = document.querySelectorAll('.row-checkbox:not(:disabled)');
-            rowCheckboxes.forEach(cb => { cb.checked = this.checked; });
+            rowCheckboxes.forEach(cb => { cb.checked = e.target.checked; });
             document.querySelectorAll('tbody tr').forEach(updateRowCheckbox);
             updateDownloadButton();
-            updateSelectAll();
-        });
-    }
+        }
+    });
     
     // Tags UI ------------------------------------------------------
     const filterForm = document.getElementById('filter-form');
@@ -195,9 +216,12 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // update form submission when table is reloaded
     document.addEventListener('htmx:afterSwap', function(e) {
-        document.querySelectorAll('tbody tr').forEach(updateRowCheckbox);
-        updateDownloadButton();
-        updateSelectAll();
+        // only update if this was a table swap
+        if (e.target.id === 'table-container') {
+            document.querySelectorAll('tbody tr').forEach(updateRowCheckbox);
+            updateDownloadButton();
+            updateSelectAll();
+        }
     });
 });
 
