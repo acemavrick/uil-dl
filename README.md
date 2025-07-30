@@ -4,7 +4,7 @@ A tool enabling easy and bulk download of UIL Academics contest materials and da
 
 ## Overview
 
-UIL-DL (UIL Downloader) is a tool designed to simplify the process of downloading and managing UIL Academics contest materials. 
+UIL-DL (UIL Downloader) is a tool designed to simplify the process of downloading and managing UIL Academics contest materials.
 It provides a clean, intuitive interface for filtering and accessing contest files, with features like caching to optimize bandwidth usage and download speed.
 
 ## Features
@@ -25,12 +25,14 @@ It provides a clean, intuitive interface for filtering and accessing contest fil
 ### Basic Installation (Required)
 
 1. Clone the repository:
+
    ```bash
    git clone https://github.com/acemavrick/uil-dl.git
    cd uil-dl
    ```
 
 2. Create and activate a virtual environment (recommended):
+
    ```bash
    python -m venv .venv
    
@@ -42,24 +44,29 @@ It provides a clean, intuitive interface for filtering and accessing contest fil
    ```
 
 3. Install required Python dependencies:
+
    ```bash
    pip install -r requirements.txt
    ```
 
-4. Build the database (required):
+4. Update `info.json` (optional):
+
    ```bash
-   python buildDB.py
+   python updateInfo.py
    ```
 
 ### Frontend Installation
+
 If you want to modify the UI or rebuild the Tailwind CSS:
 
 1. Install npm dependencies:
+
    ```bash
    npm install
    ```
 
 2. Install Tailwind CSS:
+
    ```bash
    npm install tailwindcss @tailwindcss/cli
    ```
@@ -68,11 +75,13 @@ If you want to modify the UI or rebuild the Tailwind CSS:
 
 ### Starting the Application
 
-Run the Flask application:
+Run the main file:
 
 ```bash
-python app.py
+python main.py
 ```
+
+This will ensure the database is built and everything is set up properly.  
 
 Then open your browser and navigate to `http://localhost:5001`.
 
@@ -80,24 +89,41 @@ Then open your browser and navigate to `http://localhost:5001`.
 
 1. Use the filters on the home page to find the contests you're interested in
 2. Click the download button next to the contest
-3. Files will be saved to the `downloads` directory (in the repository) and cached for future use
+3. Files will be saved to the specified directory (default, `<repository-root>/data/downloads/`)
 
 ### Managing the Cache
 
 The application maintains a cache of downloaded files to avoid redundant downloads:
 
-- **Cache Location**: All downloaded files are stored in the `downloads` directory
-- **Cache Manifest**: The `downloads/cache_manifest.json` file tracks all cached files
+- **Cache Location**: All downloaded files are stored in the specified directory
+- **Cache Manifest**: The `cache_manifest.json` file tracks all cached files
 - **Cache Operations**:
   - Refresh Cache: Updates the cache index based on files in the downloads directory
   - Reset Cache: Clears the cache index without deleting the actual files
 
-## Info Files
+### Settings
 
-The `info.json` file contains all links from the page and is included in version control. 
-While running `updateInfo.py` to update this file is optional, it can be useful if you need the latest contest information.
+On the top left, there is a panel displaying information and useful settings.  
+
+- Info Version: the version of the `info.json` file in use.
+- Total Contest: the total number of contests (not files) tracked by this tool
+- Downloads path: the path to the directory this tool is using to store and manage downloads.
+- Refresh Info: fetches the latsest version of the `info.json` file from this repository.
+- Set Path: sets the downloads path (also edits the config file). Doing this will cancel any downloads in progress.
+
+### Info Files
+
+The `info.json` file contains all links from the page and is included in version control.  
+
+There are two ways this file may be updated:  
+
+- the version on the repository is updated (will be automatically fetched)
+- updates are done manually by the user
+
+To do manual updates, run `updateInfo.py`. While running `updateInfo.py` to update this file is optional, it can be useful if you need the latest contest information.
 
 If you discover that the contest information needs updating (whether manually or through running `updateInfo.py`):
+
 1. Create an issue in the repository indicating an update to the `info.json` file
 2. Optionally, submit a PR with the updated `info.json` file
 
