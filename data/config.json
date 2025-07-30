@@ -1,4 +1,4 @@
 {
-    "download_dir": "downloads",
-    "logs_dir": "data/logs"
+  "download_dir": "data/downloads",
+  "logs_dir": "data/logs"
 }

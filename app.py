@@ -72,6 +72,10 @@ with app.app_context():
 download_semaphore = threading.Semaphore(4)  # Maximum 4 concurrent downloads
 db_rebuild_lock = threading.Lock()
 
+# Track active downloads
+active_downloads = set()  # set of cache_keys for active downloads
+active_downloads_lock = threading.Lock()
+
 # ---------- per-file locking utilities ----------
 _download_locks: dict[str, threading.Lock] = {}
 _download_locks_lock = threading.Lock()
@@ -645,6 +649,23 @@ def get_version():
         logger.error(f"Error in version route: {e}")
         return jsonify({"error": str(e)}), 500
 
+@app.route('/api/active-downloads')
+def get_active_downloads():
+    """Get the count of currently active downloads."""
+    try:
+        with active_downloads_lock:
+            active_count = len(active_downloads)
+            active_list = list(active_downloads)
+        
+        return jsonify({
+            "active_count": active_count,
+            "active_downloads": active_list,
+            "has_active": active_count > 0
+        })
+    except Exception as e:
+        logger.error(f"Error getting active downloads: {e}")
+        return jsonify({"error": str(e)}), 500
+
 # Helper function to perform an individual download (shared by single and batch routes)
 
 def _perform_download(contest_item, link_type):
@@ -668,6 +689,11 @@ def _perform_download(contest_item, link_type):
             return {"item_id": contest_item.id, "link_type": link_type, "downloaded": True, "cached": True, "file_path": cached_path}
 
         import requests, os
+        
+        # Add to active downloads tracking
+        with active_downloads_lock:
+            active_downloads.add(cache_key)
+        
         try:
             with download_semaphore:
                 response = requests.get(url_to_download, timeout=30, stream=True)
@@ -694,7 +720,17 @@ def _perform_download(contest_item, link_type):
         except Exception as e:
             logger.error(f"Download error for item {contest_item.id} ({link_type}): {e}")
             return {"item_id": contest_item.id, "link_type": link_type, "downloaded": False, "reason": str(e)}
+        finally:
+            # Remove from active downloads tracking
+            with active_downloads_lock:
+                active_downloads.discard(cache_key)
 
+@app.route('/api/currently-downloading')
+def get_currently_downloading():
+    """Get the count of currently active downloads."""
+    with active_downloads_lock:
+        active_count = len(active_downloads)
+        return str(active_count)
 
 @app.route('/batch-download', methods=['POST'])
 def batch_download():
@@ -726,6 +762,147 @@ def batch_download():
     except Exception as e:
         logger.error(f"Error in batch download route: {e}")
         return jsonify({"error": str(e)}), 500
+
+@app.route('/set-path')
+def set_path_page():
+    """Render the path setting page."""
+    return render_template('set_path.html', current_path=str(DOWNLOADS_DIR.absolute()))
+
+@app.route('/api/validate-path', methods=['POST'])
+def validate_path():
+    """Validate a directory path and return absolute path."""
+    try:
+        data = request.get_json()
+        path_str = data.get('path', '').strip()
+        
+        if not path_str:
+            return jsonify({"valid": False, "error": "Please enter a path"})
+        
+        # expand user path (~/Downloads becomes /Users/username/Downloads)
+        try:
+            path_obj = Path(path_str).expanduser().resolve()
+        except Exception as e:
+            return jsonify({"valid": False, "error": f"Invalid path format: {str(e)}"})
+        
+        # check various conditions
+        absolute_path = str(path_obj)
+        
+        if path_obj.exists():
+            if not path_obj.is_dir():
+                return jsonify({
+                    "valid": False, 
+                    "error": "Path exists but is not a directory",
+                    "absolute_path": absolute_path
+                })
+            elif not os.access(path_obj, os.W_OK):
+                return jsonify({
+                    "valid": False,
+                    "error": "Directory exists but is not writable", 
+                    "absolute_path": absolute_path
+                })
+            else:
+                return jsonify({
+                    "valid": True,
+                    "message": "✓ Valid directory",
+                    "absolute_path": absolute_path,
+                    "exists": True
+                })
+        else:
+            # directory doesn't exist - check if we can create it
+            if not path_obj.parent.exists():
+                return jsonify({
+                    "valid": False,
+                    "error": "Parent directory does not exist",
+                    "absolute_path": absolute_path
+                })
+            elif not os.access(path_obj.parent, os.W_OK):
+                return jsonify({
+                    "valid": False,
+                    "error": "Cannot create directory - parent not writable",
+                    "absolute_path": absolute_path
+                })
+            else:
+                return jsonify({
+                    "valid": True,
+                    "message": "✓ Directory will be created",
+                    "absolute_path": absolute_path,
+                    "exists": False
+                })
+                
+    except Exception as e:
+        logger.error(f"Error validating path: {e}")
+        return jsonify({"valid": False, "error": "Validation error occurred"})
+
+@app.route('/api/set-path', methods=['POST'])
+def set_download_path():
+    """Validate and set the download directory path."""
+    global DOWNLOADS_DIR, download_cache, config_data
+    
+    try:
+        data = request.get_json()
+        path_str = data.get('path', '').strip()
+        
+        if not path_str:
+            return jsonify({"success": False, "error": "Please enter a path"})
+        
+        # first validate the path
+        try:
+            path_obj = Path(path_str).expanduser().resolve()
+        except Exception as e:
+            return jsonify({"success": False, "error": f"Invalid path format: {str(e)}"})
+        
+        # create directory if it doesn't exist
+        if not path_obj.exists():
+            if not path_obj.parent.exists():
+                return jsonify({"success": False, "error": "Parent directory does not exist"})
+            try:
+                path_obj.mkdir(parents=True, exist_ok=True)
+                logger.info(f"Created directory: {path_obj}")
+            except PermissionError:
+                return jsonify({"success": False, "error": "Permission denied - cannot create directory"})
+            except Exception as e:
+                return jsonify({"success": False, "error": f"Cannot create directory: {str(e)}"})
+        
+        # verify it's a directory and writable
+        if not path_obj.is_dir():
+            return jsonify({"success": False, "error": "Path exists but is not a directory"})
+        
+        # test write access
+        test_file = path_obj / '.write_test_uil'
+        try:
+            test_file.touch()
+            test_file.unlink()
+        except Exception:
+            return jsonify({"success": False, "error": "Directory is not writable"})
+        
+        # save to config
+        old_dir = str(DOWNLOADS_DIR.absolute())
+        config_data['download_dir'] = str(path_obj)
+        
+        try:
+            with open(CONFIG_FILE, 'w') as f:
+                json.dump(config_data, f, indent=2)
+        except Exception as e:
+            return jsonify({"success": False, "error": f"Cannot save configuration: {str(e)}"})
+        
+        # update global variables
+        DOWNLOADS_DIR = path_obj
+        
+        # reinitialize download cache for new directory
+        download_cache = DownloadCache(DOWNLOADS_DIR)
+        
+        logger.info(f"Download directory changed from {old_dir} to {DOWNLOADS_DIR}")
+        
+        return jsonify({
+            "success": True,
+            "message": f"Download path set to {path_obj}",
+            "absolute_path": str(path_obj),
+            "cache_files": len(download_cache._cache_index)
+        })
+        
+    except Exception as e:
+        logger.error(f"Error setting download path: {e}")
+        return jsonify({"success": False, "error": "Failed to set download path"})
 
 if __name__ == '__main__':
     logger.error("Please use the main.py script to start the application.")

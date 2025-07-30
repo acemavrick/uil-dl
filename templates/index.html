@@ -30,7 +30,6 @@
                             <span class="font-bold">Your downloads are stored in:</span>
                             <br>
                             <code class="block p-2 mt-1 bg-gray-100 dark:bg-gray-700 rounded text-xs font-mono text-gray-800 dark:text-gray-200 overflow-x-auto">{{ download_dir_absolute }}</code>
-                            <br>
                         <div class="mt-4">
                             <div class="flex flex-wrap gap-2">
                                 <button 
@@ -42,6 +41,13 @@
                                     hx-disabled-elt="this">
                                     <span class="button-text mr-2">Refresh Info</span>
                                     <div class="spinner-small htmx-indicator"></div>
+                                </button>
+                                <button 
+                                    class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-md text-sm transition-colors duration-200 flex items-center justify-center"
+                                    id="select-path-btn"
+                                    onclick="checkActiveDownloadsAndSetPath()"
+                                    >
+                                    <span class="button-text">Set Path</span>
                                 </button>
                             </div>
                         </div>
@@ -281,6 +287,32 @@
             });
         }
     });
+
+    // Function to check for active downloads before setting path
+    async function checkActiveDownloadsAndSetPath() {
+        try {
+            const response = await fetch('/api/active-downloads');
+            const data = await response.json();
+            
+            if (data.has_active) {
+                const message = `You have ${data.active_count} download${data.active_count > 1 ? 's' : ''} currently in progress.\n\nChanging the download path will not cancel these downloads, but new downloads will go to the new location.\n\nDo you want to continue and set a new download path?`;
+                
+                if (confirm(message)) {
+                    window.location.href = '/set-path';
+                }
+                // If user clicks "Cancel", do nothing (stay on current page)
+            } else {
+                // No active downloads, proceed directly
+                window.location.href = '/set-path';
+            }
+        } catch (error) {
+            console.error('Error checking active downloads:', error);
+            // On error, ask user if they want to proceed anyway
+            if (confirm('Unable to check for active downloads. Do you want to continue setting the path anyway?')) {
+                window.location.href = '/set-path';
+            }
+        }
+    }
     </script>
 
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
