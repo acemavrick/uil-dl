@@ -1,50 +1,92 @@
 import os
 import json
-import sqlite3
 import logging
 import threading
 from pathlib import Path
 from datetime import datetime
-from flask import Flask, render_template, request, jsonify, send_file, redirect, url_for
+from flask import Flask, render_template, request, jsonify, send_file
 from werkzeug.utils import secure_filename
+from sqlalchemy import func
+from models import db, Contest
+from buildDB import repopulate_database
+from downloadInfo import update_info_from_online
 
 # build tailwindcss
 # os.system("npx tailwindcss -i ./static/css/in.css -o ./static/css/out.css")
+
+# Load configuration
+CONFIG_FILE = Path("data/config.json")
+config_data = {}
+if CONFIG_FILE.exists():
+    with open(CONFIG_FILE, 'r') as f:
+        config_data = json.load(f)
+
+DOWNLOADS_DIR = Path(config_data.get('download_dir', 'downloads'))
+DOWNLOADS_DIR.mkdir(parents=True, exist_ok=True)
+
+LOGS_DIR = Path(config_data.get('logs_dir', 'logs'))
+LOGS_DIR.mkdir(parents=True, exist_ok=True)
 
 # Configure logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 # Create logs directory if it doesn't exist
-os.makedirs('logs', exist_ok=True)
+os.makedirs(LOGS_DIR, exist_ok=True)
 
-file_handler = logging.FileHandler('logs/dev.log')
+file_handler = logging.FileHandler(LOGS_DIR / 'dev.log')
 file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
-logger.addHandler(file_handler)
 console_handler = logging.StreamHandler()
 console_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+
+logger.addHandler(file_handler)
 logger.addHandler(console_handler)
 
 # Create Flask app
 app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{os.path.abspath("data/info.db")}'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db.init_app(app)
 
-# Ensure downloads directory exists
-DOWNLOADS_DIR = Path('downloads')
-DOWNLOADS_DIR.mkdir(exist_ok=True)
+def get_database_version(db_path='data/info.db'):
+    """Get the database version from the metadata table."""
+    import sqlite3
+    try:
+        with sqlite3.connect(db_path) as conn:
+            c = conn.cursor()
+            c.execute('SELECT value FROM metadata WHERE key = ?', ('version',))
+            result = c.fetchone()
+            return int(result[0]) if result else None
+    except sqlite3.Error as e:
+        logger.error(f"Error getting database version: {e}")
+        return None
+    except (ValueError, TypeError) as e:
+        logger.error(f"Error parsing database version: {e}")
+        return None
+
+# Create tables within app context
+with app.app_context():
+    db.create_all()
 
 # Create a semaphore to limit concurrent downloads
 download_semaphore = threading.Semaphore(4)  # Maximum 4 concurrent downloads
+db_rebuild_lock = threading.Lock()
 
-# Initialize database connection
-def get_db_connection():
-    """Connect to the SQLite database and return the connection."""
-    try:
-        conn = sqlite3.connect('info.db')
-        conn.row_factory = sqlite3.Row
-        return conn
-    except sqlite3.Error as e:
-        logger.error(f"Database connection error: {e}")
-        return None
+# Track active downloads
+active_downloads = set()  # set of cache_keys for active downloads
+active_downloads_lock = threading.Lock()
+
+# ---------- per-file locking utilities ----------
+_download_locks: dict[str, threading.Lock] = {}
+_download_locks_lock = threading.Lock()
+
+
+def _get_download_lock(cache_key: str) -> threading.Lock:
+    """Return a unique lock per cache_key so concurrent requests for the
+    same file are serialised. Thread-safe thanks to the global lock dict."""
+    with _download_locks_lock:
+        return _download_locks.setdefault(cache_key, threading.Lock())
+# -------------------------------------------------
 
 class DownloadCache:
     """Class to manage the download cache."""
@@ -54,6 +96,7 @@ class DownloadCache:
         self.downloads_dir = Path(downloads_dir)
         self.downloads_dir.mkdir(exist_ok=True)
         self._cache_index = {}
+        self._cache_lock = threading.RLock()  # guard cache mutations
         self._load_or_build_cache()
         logger.info(f"Download cache initialized with {len(self._cache_index)} files")
     
@@ -138,12 +181,13 @@ class DownloadCache:
         """Add a file to the cache index."""
         path_obj = Path(file_path)
         if path_obj.exists():
-            self._cache_index[file_key] = {
-                'path': str(path_obj),
-                'size': path_obj.stat().st_size,
-                'timestamp': datetime.fromtimestamp(path_obj.stat().st_mtime).isoformat()
-            }
-            self._save_cache_manifest()
+            with self._cache_lock:
+                self._cache_index[file_key] = {
+                    'path': str(path_obj),
+                    'size': path_obj.stat().st_size,
+                    'timestamp': datetime.fromtimestamp(path_obj.stat().st_mtime).isoformat()
+                }
+                self._save_cache_manifest()
             logger.info(f"Added file to cache: {file_key}")
         else:
             logger.warning(f"Attempted to add non-existent file to cache: {file_path}")
@@ -171,288 +215,397 @@ class DownloadCache:
 # Initialize the download cache
 download_cache = DownloadCache()
 
-def format_filename(item_type, subject, level, year, extension):
-    """Format filename according to the required pattern: subject_year_level(_data).extension"""
+def format_filename(subject, level, year, link_type, extension):
+    """Format filename: subject_year_level_linktype.extension"""
     base_name = f"{subject.replace(' ', '_')}_{year}_{level.replace(' ', '_')}"
-    if item_type == "data_file":
-        return f"{base_name}_data{extension}"
-    return f"{base_name}{extension}"
+    # Use link_type to differentiate files for the same contest
+    return f"{base_name}_{link_type}{extension}"
 
-def generate_cache_key(item_type, subject, level, year):
-    """Generate a consistent cache key for a contest or data file."""
+def generate_cache_key(subject, level, year, link_type):
+    """Generate a consistent cache key for a contest's file."""
     base_key = f"{subject.replace(' ', '_')}_{year}_{level.replace(' ', '_')}"
-    if item_type == "data_file":
-        return f"{base_key}_data"
-    return base_key
+    return f"{base_key}_{link_type}"
 
 @app.route('/')
 def index():
     """Render the main page."""
     logger.info("Loading main page")
     try:
-        conn = get_db_connection()
-        if conn is None:
-            return render_template('index.html', error="Database connection failed", contests=[])
-        
-        # Get unique subjects, levels, and years for filters
-        subjects = conn.execute('SELECT DISTINCT subject FROM contests ORDER BY subject').fetchall()
-        levels = conn.execute('SELECT DISTINCT level FROM contests ORDER BY level').fetchall()
-        years = conn.execute('SELECT DISTINCT year FROM contests ORDER BY year DESC').fetchall()
-        
-        conn.close()
-        
-        # Get cache stats
+        # Use SQLAlchemy to get distinct values for filters
+        subjects = [s[0] for s in db.session.query(Contest.subject).distinct().order_by(Contest.subject).all()]
+        levels = [l[0] for l in db.session.query(Contest.level).distinct().order_by(Contest.level).all()]
+        years = [y[0] for y in db.session.query(Contest.year).distinct().order_by(Contest.year.desc()).all()]
+
+        # Get cache stats and database version
         cache_stats = download_cache.get_stats()
+        db_version = get_database_version()
         
-        return render_template('index.html', 
-                               subjects=[s['subject'] for s in subjects],
-                               levels=[l['level'] for l in levels],
-                               years=[y['year'] for y in years],
-                               cache_stats=cache_stats)
+        return render_template('index.html',
+                               subjects=subjects,
+                               levels=levels,
+                               years=years,
+                               cache_stats=cache_stats,
+                               download_dir_absolute=DOWNLOADS_DIR.absolute(),
+                               info_version=db_version,
+                               total_contest_count=db.session.query(Contest).count())
     except Exception as e:
         logger.error(f"Error in index route: {e}")
-        return render_template('index.html', error=str(e), contests=[])
+        # Get cache stats and database version even when there's an error
+        cache_stats = download_cache.get_stats()
+        db_version = get_database_version()
+        return render_template('index.html', error=str(e), contests=[], cache_stats=cache_stats, database_version=db_version)
 
-@app.route('/download/<int:item_id>/<item_type>')
-def download_file(item_id, item_type):
-    """Download a file for a specific contest or data file."""
-    logger.info(f"Download requested for {item_type} ID: {item_id}")
+@app.route('/refresh-info', methods=['POST'])
+def refresh_info():
+    """Refreshes the contest information from the UIL website."""
+    logger.info("Refresh info requested.")
+    
+    if not db_rebuild_lock.acquire(blocking=False):
+        logger.warning("Refresh info already in progress.")
+        return "A refresh info process is already in progress. Please wait.", 503
+
     try:
-        conn = get_db_connection()
-        if conn is None:
-            return jsonify({"error": "Database connection failed"}), 500
+        logger.info("Starting refresh info process.")
         
-        # Get item info based on type
-        if item_type == 'contest':
-            item = conn.execute('SELECT * FROM contests WHERE id = ?', (item_id,)).fetchone()
-            table_name = 'contests'
-        elif item_type == 'data_file':
-            item = conn.execute('SELECT * FROM data_files WHERE id = ?', (item_id,)).fetchone()
-            table_name = 'data_files'
+        # Call the update_info_from_online function
+        updated = update_info_from_online()
+        
+        if updated:
+            logger.info("Info refreshed successfully - new version downloaded.")
+            # rebuild the database
+            repopulate_database(db_path=app.config['SQLALCHEMY_DATABASE_URI'].replace('sqlite:///', ''))
+            return "Info refreshed successfully - new version downloaded. Database rebuilt.", 200
         else:
-            conn.close()
-            return jsonify({"error": "Invalid item type"}), 400
-        
-        conn.close()
-        
+            logger.info("Info refresh completed - no update needed.")
+            return "Info refresh completed - no update needed.", 200
+    except Exception as e:
+        logger.error(f"Failed to refresh info: {e}", exc_info=True)
+        return f"Failed to refresh info: {str(e)}", 500
+    finally:
+        db_rebuild_lock.release()
+
+@app.route('/download/<int:item_id>/<link_type>', methods=['GET', 'POST'])
+def download_file(item_id, link_type):
+    """Download a file for a specific contest, identified by link_type (pdf, zip, other)."""
+    logger.info(f"Download requested for contest ID {item_id}, link type: {link_type}")
+    
+    if link_type not in ['pdf', 'zip', 'other']:
+        return jsonify({"error": "Invalid link type specified. Must be 'pdf', 'zip', or 'other'."}), 400
+
+    try:
+        item = db.session.get(Contest, item_id)
         if not item:
-            logger.error(f"{item_type.capitalize()} with ID {item_id} not found")
-            return jsonify({"error": f"{item_type.capitalize()} not found"}), 404
+            logger.error(f"Contest with ID {item_id} not found")
+            if request.headers.get('HX-Request'):
+                return f"""
+                <div class="flex items-center justify-center space-x-2">
+                    <span class="text-red-500 text-sm">Contest not found</span>
+                </div>
+                """
+            return jsonify({"error": "Contest not found"}), 404
+
+        link_map = {
+            'pdf': item.pdf_link,
+            'zip': item.zip_link,
+            'other': item.other_link
+        }
         
-        # Create a key for the cache
+        url_to_download = link_map.get(link_type)
+
+        if not url_to_download:
+            logger.error(f"No {link_type} link found for contest ID {item_id}")
+            if request.headers.get('HX-Request'):
+                return f"""
+                <div class="flex items-center justify-center space-x-2">
+                    <span class="text-gray-500 text-sm">N/A</span>
+                </div>
+                """
+            return jsonify({"error": f"No {link_type} link available for this contest."}), 404
+
         cache_key = generate_cache_key(
-            item_type, 
-            item['subject'], 
-            item['level'], 
-            item['year']
+            item.subject, 
+            item.level, 
+            item.year,
+            link_type # use link_type in cache key
         )
         
-        # Check if the file is already in the cache
-        cached_path = download_cache.get_cached_file_path(cache_key)
-        if cached_path:
-            logger.info(f"Serving cached file: {cached_path}")
-            # Return success response for AJAX requests
-            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return jsonify({
-                    "success": True,
-                    "message": "File already downloaded",
-                    "item_id": item_id,
-                    "item_type": item_type,
-                    "file_path": cached_path,
-                    "downloaded": True
-                })
-            # Otherwise serve the file directly
-            return send_file(cached_path, as_attachment=True)
-        
-        # If not in cache, download the file
-        import requests
-        try:
-            # Use a semaphore to limit concurrent downloads
-            with download_semaphore:
-                logger.info(f"Downloading file from {item['link']}")
-                response = requests.get(item['link'], timeout=30)
-                response.raise_for_status()
-            
-            # Determine file extension from URL
-            file_extension = os.path.splitext(item['link'])[1]
-            if not file_extension:
-                # Guess extension from content type
-                content_type = response.headers.get('Content-Type', '')
-                if 'pdf' in content_type:
-                    file_extension = '.pdf'
-                elif 'zip' in content_type or 'application/octet-stream' in content_type:
-                    file_extension = '.zip'
-                else:
-                    file_extension = '.dat'
-            
-            # Make sure the extension is properly formed
-            if not file_extension.startswith('.'):
-                file_extension = '.' + file_extension
-                
-            # Format the filename according to the pattern
-            formatted_filename = format_filename(
-                item_type,
-                item['subject'],
-                item['level'],
-                item['year'],
-                file_extension
-            )
-            
-            # Create the file in the downloads directory
-            file_path = DOWNLOADS_DIR / formatted_filename
-            with open(file_path, 'wb') as f:
-                f.write(response.content)
-            
-            # Add to cache
-            download_cache.add_to_cache(cache_key, str(file_path))
-            
-            logger.info(f"File downloaded successfully: {file_path}")
-            
-            # Return success response with file info
+        # ---------- thread-safe & atomic download ----------
+        download_result = _perform_download(item, link_type)
+
+        if not download_result.get("downloaded"):
+            reason = download_result.get("reason", "Unknown error")
+            logger.error(f"Download failed: {reason}")
+            if request.headers.get('HX-Request'):
+                return f"""
+                <div class="flex items-center justify-center space-x-2">
+                    <input type="checkbox" 
+                           class="{'packet-checkbox' if link_type == 'pdf' else 'datafile-checkbox'} h-5 w-5 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded"
+                           data-id="{item_id}"
+                           data-type="{link_type}">
+                    <span class="text-xs text-red-600">✗</span>
+                    <span class="text-xs text-red-600" title="{reason}">Error</span>
+                </div>
+                """
+            return jsonify({"error": reason}), 500
+
+        cached = download_result.get("cached", False)
+        file_path = download_result.get("file_path")
+
+        # success responses
+        if request.headers.get('HX-Request'):
+            return f"""
+            <div class="flex items-center justify-center space-x-2">
+                <input type="checkbox" 
+                       class="{'packet-checkbox' if link_type == 'pdf' else 'datafile-checkbox'} h-5 w-5 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded"
+                       data-id="{item_id}"
+                       data-type="{link_type}"
+                       disabled 
+                       checked
+                       title="{'Already downloaded' if cached else 'Downloaded successfully'}">
+                <span class="text-xs text-green-600">✓</span>
+            </div>
+            """
+        elif request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify({
                 "success": True,
-                "message": "File downloaded successfully",
+                "message": "File already downloaded" if cached else "File downloaded successfully",
                 "item_id": item_id,
-                "item_type": item_type,
-                "file_path": str(file_path),
+                "link_type": link_type,
+                "file_path": file_path,
                 "downloaded": True
             })
-            
-        except requests.RequestException as e:
-            logger.error(f"Download error: {e}")
-            return jsonify({"error": f"Download failed: {str(e)}"}), 500
-            
+
+        return send_file(file_path, as_attachment=True)
     except Exception as e:
         logger.error(f"Error in download route: {e}")
+        if request.headers.get('HX-Request'):
+            return f"""
+            <div class="flex items-center justify-center space-x-2">
+                <input type="checkbox" 
+                       class="{'packet-checkbox' if link_type == 'pdf' else 'datafile-checkbox'} h-5 w-5 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded"
+                       data-id="{item_id}"
+                       data-type="{link_type}">
+                <span class="text-xs text-red-600">✗</span>
+                <span class="text-xs text-red-600" title="{str(e)}">Error</span>
+            </div>
+            """
         return jsonify({"error": str(e)}), 500
 
-@app.route('/refresh-cache')
+@app.route('/refresh-cache', methods=['GET', 'POST'])
 def refresh_cache():
     """Refresh the download cache."""
     logger.info("Refreshing download cache")
     count = download_cache.rebuild_cache()
-    return jsonify({
-        "success": True,
-        "message": f"Cache refreshed. Found {count} files.",
-        "count": count
-    })
+    
+    # Return HTMX-friendly response for cache info update
+    cache_stats = download_cache.get_stats()
+    return f"""
+    <div class="text-sm text-gray-600 dark:text-gray-300 space-y-1">
+        <p>Downloaded Files: <span>{cache_stats['total_files']}</span></p>
+        <p>Total Size: <span>{cache_stats['total_size'] // 1024 // 1024} MB</span></p>
+        <p class="text-green-600 dark:text-green-400">Cache refreshed! Found {count} files.</p>
+    </div>
+    """
 
-@app.route('/reset-cache')
+@app.route('/reset-cache', methods=['GET', 'POST'])
 def reset_cache():
     """Reset the download cache (forget all downloads)."""
     logger.info("Resetting download cache")
     count = download_cache.reset_cache()
-    return jsonify({
-        "success": True,
-        "message": f"Cache reset. Forgot {count} files.",
-        "count": count
-    })
+    
+    # Return HTMX-friendly response for cache info update
+    cache_stats = download_cache.get_stats()
+    return f"""
+    <div class="text-sm text-gray-600 dark:text-gray-300 space-y-1">
+        <p>Downloaded Files: <span>{cache_stats['total_files']}</span></p>
+        <p>Total Size: <span>{cache_stats['total_size'] // 1024 // 1024} MB</span></p>
+        <p class="text-yellow-600 dark:text-yellow-400">Cache reset! Forgot {count} files.</p>
+    </div>
+    """
+
+@app.route('/cache-stats')
+def get_cache_stats():
+    """Get cache statistics for the sidebar."""
+    cache_stats = download_cache.get_stats()
+    return f"""
+    <div class="text-sm text-gray-600 dark:text-gray-300 space-y-1">
+        <p>Downloaded Files: <span>{cache_stats['total_files']}</span></p>
+        <p>Total Size: <span>{cache_stats['total_size'] // 1024 // 1024} MB</span></p>
+    </div>
+    """
+
+@app.route('/contests', methods=['GET', 'POST'])
+def get_contests_htmx():
+    """Get contests formatted for HTMX table body."""
+    try:
+        query = db.session.query(Contest)
+        
+        # Get filter parameters from either GET args or POST form data
+        if request.method == 'POST':
+            form_data = request.form
+            subjects = form_data.getlist('subjects')
+            levels = form_data.getlist('levels') 
+            years = form_data.getlist('years')
+            downloaded_filter = form_data.get('downloaded', '')
+            sort_by = form_data.get('sort_by', 'year')
+            sort_dir = form_data.get('sort_dir', 'desc')
+        else:
+            subjects = request.args.getlist('subject')
+            levels = request.args.getlist('level')
+            years = request.args.getlist('year')
+            downloaded_filter = request.args.get('downloaded', '')
+            sort_by = request.args.get('sort_by', 'year')
+            sort_dir = request.args.get('sort_dir', 'desc')
+        
+        # Apply filters
+        if subjects:
+            query = query.filter(Contest.subject.in_(subjects))
+        if levels:
+            query = query.filter(Contest.level.in_(levels))
+        if years:
+            query = query.filter(Contest.year.in_([int(y) for y in years]))
+
+        # Apply sorting
+        if sort_by == 'subject':
+            if sort_dir == 'desc':
+                query = query.order_by(Contest.subject.desc())
+            else:
+                query = query.order_by(Contest.subject.asc())
+        elif sort_by == 'level':
+            if sort_dir == 'desc':
+                query = query.order_by(Contest.level.desc())
+            else:
+                query = query.order_by(Contest.level.asc())
+        elif sort_by == 'year':
+            if sort_dir == 'desc':
+                query = query.order_by(Contest.year.desc())
+            else:
+                query = query.order_by(Contest.year.asc())
+        else:
+            # Default sorting
+            query = query.order_by(Contest.subject, Contest.level, Contest.year.desc())
+        
+        contests = query.all()
+        
+        # Filter by download status and build result
+        result_contests = []
+        for item in contests:
+            pdf_downloaded = download_cache.is_cached(generate_cache_key(item.subject, item.level, item.year, 'pdf')) if item.pdf_link else None
+            zip_downloaded = download_cache.is_cached(generate_cache_key(item.subject, item.level, item.year, 'zip')) if item.zip_link else None
+            other_downloaded = download_cache.is_cached(generate_cache_key(item.subject, item.level, item.year, 'other')) if item.other_link else None
+
+            # Determine status (ignore 'other' link for completeness)
+            has_pdf = item.pdf_link is not None
+            has_zip = item.zip_link is not None
+
+            # a contest is fully downloaded if its downloadable files (pdf/zip) are downloaded.
+            all_downloaded = (
+                (not has_pdf or pdf_downloaded) and
+                (not has_zip or zip_downloaded)
+            )
+
+            if not has_pdf and not has_zip:
+                status = 'no-links'
+            elif all_downloaded:
+                status = 'downloaded'
+            elif (pdf_downloaded or zip_downloaded):
+                status = 'partial'
+            else:
+                status = 'pending'
+
+            item_data = {
+                'contest': item,
+                'pdf_downloaded': pdf_downloaded,
+                'zip_downloaded': zip_downloaded,
+                'other_downloaded': other_downloaded,
+                'status': status
+            }
+
+            # Apply download filter
+            if downloaded_filter == 'true' and status != 'downloaded':
+                continue
+            elif downloaded_filter == 'false' and status == 'downloaded':
+                continue
+            elif downloaded_filter == 'partial' and status != 'partial':
+                continue
+                
+            result_contests.append(item_data)
+        
+        return render_template('contests_table.html', contests=result_contests)
+        
+    except Exception as e:
+        logger.error(f"Error in contests route: {e}")
+        return f'<tbody><tr><td colspan="7" class="text-center text-red-600">Error loading contests: {str(e)}</td></tr></tbody>'
 
 @app.route('/api/contests')
 def get_contests():
-    """API endpoint to get contest data with their associated data files."""
+    """API endpoint to get contest data based on filters."""
     try:
-        # Get filter parameters (can have multiple values per parameter)
+        query = db.session.query(Contest)
+        
+        # Apply filters from query parameters
         subjects = request.args.getlist('subject')
-        levels = request.args.getlist('level')
-        years = request.args.getlist('year')
-        downloaded = request.args.get('downloaded')
-        
-        conn = get_db_connection()
-        if conn is None:
-            return jsonify({"error": "Database connection failed"}), 500
-        
-        # Build query to get all contests and all data files, including unlinked ones.
-        # This is done by finding all unique (subject, level, year) combinations
-        # and then LEFT JOINING both contests and data_files to that set.
-
-        where_conditions = []
-        params = []
         if subjects:
-            placeholders = ', '.join(['?'] * len(subjects))
-            where_conditions.append(f"subject IN ({placeholders})")
-            params.extend(subjects)
+            query = query.filter(Contest.subject.in_(subjects))
         
+        levels = request.args.getlist('level')
         if levels:
-            placeholders = ', '.join(['?'] * len(levels))
-            where_conditions.append(f"level IN ({placeholders})")
-            params.extend(levels)
+            query = query.filter(Contest.level.in_(levels))
         
+        years = request.args.getlist('year')
         if years:
-            placeholders = ', '.join(['?'] * len(years))
-            where_conditions.append(f"year IN ({placeholders})")
-            params.extend([int(year) for year in years])
+            # Ensure years are integers for correct filtering
+            query = query.filter(Contest.year.in_([int(y) for y in years]))
 
-        # The WHERE clause applies to both parts of the UNION inside the CTE
-        where_clause = ""
-        if where_conditions:
-            where_clause = "WHERE " + " AND ".join(where_conditions)
-            # Parameters need to be duplicated for the two SELECTs in the UNION
-            params = params * 2
-
-        query = f"""
-            WITH all_items AS (
-                SELECT subject, level, year FROM contests {where_clause}
-                UNION
-                SELECT subject, level, year FROM data_files {where_clause}
-            )
-            SELECT
-                i.subject, i.level, i.year,
-                c.id AS contest_id, c.link AS contest_link,
-                d.id AS data_file_id, d.link AS data_file_link
-            FROM all_items i
-            LEFT JOIN contests c ON i.subject = c.subject AND i.level = c.level AND i.year = c.year
-            LEFT JOIN data_files d ON i.subject = d.subject AND i.level = d.level AND i.year = d.year
-            ORDER BY i.subject, i.level, i.year DESC
-        """
+        # Order results for consistent presentation
+        query = query.order_by(Contest.subject, Contest.level, Contest.year.desc())
         
-        contests = conn.execute(query, params).fetchall()
-        conn.close()
+        contests = query.all()
         
-        result = []
+        # Filter by download status in Python after the database query
+        downloaded_filter = request.args.get('downloaded')
+        result_data = []
         for item in contests:
-            contest_dict = {
-                'id': item['contest_id'],  # May be None if it's a data_file-only item
-                'subject': item['subject'],
-                'level': item['level'],
-                'year': item['year'],
-                'contest': None,
-                'data_file': None
+            item_dict = {
+                'id': item.id,
+                'subject': item.subject,
+                'level': item.level,
+                'year': item.year,
+                'pdf_link': {
+                    'link': item.pdf_link,
+                    'downloaded': download_cache.is_cached(generate_cache_key(item.subject, item.level, item.year, 'pdf')) if item.pdf_link else None
+                },
+                'zip_link': {
+                    'link': item.zip_link,
+                    'downloaded': download_cache.is_cached(generate_cache_key(item.subject, item.level, item.year, 'zip')) if item.zip_link else None
+                },
+                'other_link': {
+                    'link': item.other_link,
+                    'downloaded': download_cache.is_cached(generate_cache_key(item.subject, item.level, item.year, 'other')) if item.other_link else None
+                }
             }
-            
-            # Add contest info if available
-            if item['contest_id']:
-                contest_dict['contest'] = {
-                    'id': item['contest_id'],
-                    'link': item['contest_link'],
-                    'downloaded': download_cache.is_cached(generate_cache_key('contest', item['subject'], item['level'], item['year']))
-                }
 
-            # Add data file info if available
-            if item['data_file_id']:
-                contest_dict['data_file'] = {
-                    'id': item['data_file_id'],
-                    'link': item['data_file_link'],
-                    'downloaded': download_cache.is_cached(generate_cache_key('data_file', item['subject'], item['level'], item['year']))
-                }
-            
-            # Filter by download status if requested
-            if downloaded == 'true':
-                # Item is considered fully downloaded if all its available parts are downloaded.
-                contest_downloaded = not contest_dict['contest'] or contest_dict['contest']['downloaded']
-                data_file_downloaded = not contest_dict['data_file'] or contest_dict['data_file']['downloaded']
-                if contest_downloaded and data_file_downloaded:
-                    result.append(contest_dict)
-            elif downloaded == 'false':
-                # Item is considered "not downloaded" if any of its parts are missing.
-                contest_missing = contest_dict['contest'] and not contest_dict['contest']['downloaded']
-                data_file_missing = contest_dict['data_file'] and not contest_dict['data_file']['downloaded']
-                if contest_missing or data_file_missing:
-                    result.append(contest_dict)
+            if downloaded_filter in ['true', 'false']:
+                has_pdf = item_dict['pdf_link']['link'] is not None
+                has_zip = item_dict['zip_link']['link'] is not None
+                has_other = item_dict['other_link']['link'] is not None
+                
+                # A link is considered downloaded if it doesn't exist or is cached
+                pdf_downloaded = not has_pdf or item_dict['pdf_link']['downloaded']
+                zip_downloaded = not has_zip or item_dict['zip_link']['downloaded']
+                other_downloaded = not has_other or item_dict['other_link']['downloaded']
+                
+                is_fully_downloaded = pdf_downloaded and zip_downloaded and other_downloaded
+                
+                if downloaded_filter == 'true' and is_fully_downloaded:
+                    result_data.append(item_dict)
+                elif downloaded_filter == 'false' and not is_fully_downloaded:
+                    result_data.append(item_dict)
             else:
-                result.append(contest_dict)
+                # No download filter, so add the item
+                result_data.append(item_dict)
             
-        return jsonify(result)
+        return jsonify(result_data)
     except Exception as e:
         logger.error(f"Error in API route: {e}")
         return jsonify({"error": str(e)}), 500
@@ -461,22 +614,24 @@ def get_contests():
 def get_stats():
     """Get download cache statistics."""
     try:
-        conn = get_db_connection()
-        if conn is None:
-            return jsonify({"error": "Database connection failed"}), 500
-            
-        total_contests = conn.execute('SELECT COUNT(*) FROM contests').fetchone()[0]
-        total_data_files = conn.execute('SELECT COUNT(*) FROM data_files').fetchone()[0]
-        conn.close()
+        total_contests_query = db.session.query(func.count(Contest.id))
+        
+        # Count total available files by checking for non-null links
+        total_files = total_contests_query.filter(Contest.pdf_link.isnot(None)).scalar() + \
+                      total_contests_query.filter(Contest.zip_link.isnot(None)).scalar() + \
+                      total_contests_query.filter(Contest.other_link.isnot(None)).scalar()
+
+        total_contests = total_contests_query.scalar()
         
         cache_stats = download_cache.get_stats()
         
         stats = {
             "total_contests": total_contests,
-            "total_data_files": total_data_files,
+            "total_files_available": total_files,
             "downloaded_files": cache_stats['total_files'],
             "download_size_bytes": cache_stats['total_size'],
-            "download_percentage": (cache_stats['total_files'] / (total_contests + total_data_files)) * 100 if (total_contests + total_data_files) > 0 else 0
+            "download_percentage": (cache_stats['total_files'] / total_files) * 100 if total_files > 0 else 0,
+            "database_version": get_database_version()
         }
         
         return jsonify(stats)
@@ -484,6 +639,272 @@ def get_stats():
         logger.error(f"Error in stats route: {e}")
         return jsonify({"error": str(e)}), 500
 
+@app.route('/api/version')
+def get_version():
+    """Get the database version."""
+    try:
+        version = get_database_version()
+        return jsonify({"database_version": version})
+    except Exception as e:
+        logger.error(f"Error in version route: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/active-downloads')
+def get_active_downloads():
+    """Get the count of currently active downloads."""
+    try:
+        with active_downloads_lock:
+            active_count = len(active_downloads)
+            active_list = list(active_downloads)
+        
+        return jsonify({
+            "active_count": active_count,
+            "active_downloads": active_list,
+            "has_active": active_count > 0
+        })
+    except Exception as e:
+        logger.error(f"Error getting active downloads: {e}")
+        return jsonify({"error": str(e)}), 500
+
+# Helper function to perform an individual download (shared by single and batch routes)
+
+def _perform_download(contest_item, link_type):
+    """Download a specific file for a contest item and add it to cache. Returns dict result."""
+    link_map = {
+        'pdf': contest_item.pdf_link,
+        'zip': contest_item.zip_link,
+        'other': contest_item.other_link
+    }
+
+    url_to_download = link_map.get(link_type)
+    if not url_to_download:
+        return {"item_id": contest_item.id, "link_type": link_type, "downloaded": False, "reason": "No link available"}
+
+    cache_key = generate_cache_key(contest_item.subject, contest_item.level, contest_item.year, link_type)
+    # ensure only one thread handles a given file at a time
+    download_lock = _get_download_lock(cache_key)
+    with download_lock:
+        cached_path = download_cache.get_cached_file_path(cache_key)
+        if cached_path:
+            return {"item_id": contest_item.id, "link_type": link_type, "downloaded": True, "cached": True, "file_path": cached_path}
+
+        import requests, os
+        
+        # Add to active downloads tracking
+        with active_downloads_lock:
+            active_downloads.add(cache_key)
+        
+        try:
+            with download_semaphore:
+                response = requests.get(url_to_download, timeout=30, stream=True)
+                response.raise_for_status()
+
+            # Determine extension
+            file_extension = os.path.splitext(url_to_download)[1] or '.dat'
+            if not file_extension.startswith('.'):
+                file_extension = '.' + file_extension
+
+            formatted_filename = format_filename(contest_item.subject, contest_item.level, contest_item.year, link_type, file_extension)
+            file_path = DOWNLOADS_DIR / formatted_filename
+            tmp_path = file_path.with_suffix(file_path.suffix + '.tmp')
+
+            # atomic streaming write to tmp then rename
+            with open(tmp_path, 'wb') as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    if chunk:
+                        f.write(chunk)
+            tmp_path.replace(file_path)
+
+            download_cache.add_to_cache(cache_key, str(file_path))
+            return {"item_id": contest_item.id, "link_type": link_type, "downloaded": True, "cached": False, "file_path": str(file_path)}
+        except Exception as e:
+            logger.error(f"Download error for item {contest_item.id} ({link_type}): {e}")
+            return {"item_id": contest_item.id, "link_type": link_type, "downloaded": False, "reason": str(e)}
+        finally:
+            # Remove from active downloads tracking
+            with active_downloads_lock:
+                active_downloads.discard(cache_key)
+
+@app.route('/api/currently-downloading')
+def get_currently_downloading():
+    """Get the count of currently active downloads."""
+    with active_downloads_lock:
+        active_count = len(active_downloads)
+        return str(active_count)
+
+@app.route('/batch-download', methods=['POST'])
+def batch_download():
+    """Endpoint to download multiple selected files in one request."""
+    logger.info("Batch download request received")
+    try:
+        data = request.get_json(silent=True) or {}
+        items = data.get('items', [])
+        if not items:
+            return jsonify({"error": "No items provided"}), 400
+
+        results = []
+        for entry in items:
+            item_id = entry.get('id')
+            link_type = entry.get('type')
+            if link_type not in ['pdf', 'zip']:
+                # Skip unsupported types (other is just a link)
+                results.append({"item_id": item_id, "link_type": link_type, "downloaded": False, "reason": "Unsupported type"})
+                continue
+            contest_item = db.session.get(Contest, int(item_id))
+            if not contest_item:
+                results.append({"item_id": item_id, "link_type": link_type, "downloaded": False, "reason": "Contest not found"})
+                continue
+            results.append(_perform_download(contest_item, link_type))
+
+        # After downloads, return summary and updated cache stats
+        cache_stats = download_cache.get_stats()
+        return jsonify({"success": True, "results": results, "cache_stats": cache_stats})
+    except Exception as e:
+        logger.error(f"Error in batch download route: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/set-path')
+def set_path_page():
+    """Render the path setting page."""
+    return render_template('set_path.html', current_path=str(DOWNLOADS_DIR.absolute()))
+
+@app.route('/api/validate-path', methods=['POST'])
+def validate_path():
+    """Validate a directory path and return absolute path."""
+    try:
+        data = request.get_json()
+        path_str = data.get('path', '').strip()
+        
+        if not path_str:
+            return jsonify({"valid": False, "error": "Please enter a path"})
+        
+        # expand user path (~/Downloads becomes /Users/username/Downloads)
+        try:
+            path_obj = Path(path_str).expanduser().resolve()
+        except Exception as e:
+            return jsonify({"valid": False, "error": f"Invalid path format: {str(e)}"})
+        
+        # check various conditions
+        absolute_path = str(path_obj)
+        
+        if path_obj.exists():
+            if not path_obj.is_dir():
+                return jsonify({
+                    "valid": False, 
+                    "error": "Path exists but is not a directory",
+                    "absolute_path": absolute_path
+                })
+            elif not os.access(path_obj, os.W_OK):
+                return jsonify({
+                    "valid": False,
+                    "error": "Directory exists but is not writable", 
+                    "absolute_path": absolute_path
+                })
+            else:
+                return jsonify({
+                    "valid": True,
+                    "message": "✓ Valid directory",
+                    "absolute_path": absolute_path,
+                    "exists": True
+                })
+        else:
+            # directory doesn't exist - check if we can create it
+            if not path_obj.parent.exists():
+                return jsonify({
+                    "valid": False,
+                    "error": "Parent directory does not exist",
+                    "absolute_path": absolute_path
+                })
+            elif not os.access(path_obj.parent, os.W_OK):
+                return jsonify({
+                    "valid": False,
+                    "error": "Cannot create directory - parent not writable",
+                    "absolute_path": absolute_path
+                })
+            else:
+                return jsonify({
+                    "valid": True,
+                    "message": "✓ Directory will be created",
+                    "absolute_path": absolute_path,
+                    "exists": False
+                })
+                
+    except Exception as e:
+        logger.error(f"Error validating path: {e}")
+        return jsonify({"valid": False, "error": "Validation error occurred"})
+
+@app.route('/api/set-path', methods=['POST'])
+def set_download_path():
+    """Validate and set the download directory path."""
+    global DOWNLOADS_DIR, download_cache, config_data
+    
+    try:
+        data = request.get_json()
+        path_str = data.get('path', '').strip()
+        
+        if not path_str:
+            return jsonify({"success": False, "error": "Please enter a path"})
+        
+        # first validate the path
+        try:
+            path_obj = Path(path_str).expanduser().resolve()
+        except Exception as e:
+            return jsonify({"success": False, "error": f"Invalid path format: {str(e)}"})
+        
+        # create directory if it doesn't exist
+        if not path_obj.exists():
+            if not path_obj.parent.exists():
+                return jsonify({"success": False, "error": "Parent directory does not exist"})
+            try:
+                path_obj.mkdir(parents=True, exist_ok=True)
+                logger.info(f"Created directory: {path_obj}")
+            except PermissionError:
+                return jsonify({"success": False, "error": "Permission denied - cannot create directory"})
+            except Exception as e:
+                return jsonify({"success": False, "error": f"Cannot create directory: {str(e)}"})
+        
+        # verify it's a directory and writable
+        if not path_obj.is_dir():
+            return jsonify({"success": False, "error": "Path exists but is not a directory"})
+        
+        # test write access
+        test_file = path_obj / '.write_test_uil'
+        try:
+            test_file.touch()
+            test_file.unlink()
+        except Exception:
+            return jsonify({"success": False, "error": "Directory is not writable"})
+        
+        # save to config
+        old_dir = str(DOWNLOADS_DIR.absolute())
+        config_data['download_dir'] = str(path_obj)
+        
+        try:
+            with open(CONFIG_FILE, 'w') as f:
+                json.dump(config_data, f, indent=2)
+        except Exception as e:
+            return jsonify({"success": False, "error": f"Cannot save configuration: {str(e)}"})
+        
+        # update global variables
+        DOWNLOADS_DIR = path_obj
+        
+        # reinitialize download cache for new directory
+        download_cache = DownloadCache(DOWNLOADS_DIR)
+        
+        logger.info(f"Download directory changed from {old_dir} to {DOWNLOADS_DIR}")
+        
+        return jsonify({
+            "success": True,
+            "message": f"Download path set to {path_obj}",
+            "absolute_path": str(path_obj),
+            "cache_files": len(download_cache._cache_index)
+        })
+        
+    except Exception as e:
+        logger.error(f"Error setting download path: {e}")
+        return jsonify({"success": False, "error": "Failed to set download path"})
+
 if __name__ == '__main__':
-    logger.info("Starting UIL Download Flask application")
+    logger.error("Please use the main.py script to start the application.")
+    exit(1)
     app.run(debug=False, port=5001) 

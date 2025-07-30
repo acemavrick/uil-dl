@@ -400,3 +400,5 @@ pyrightconfig.json
 *.db
 
 tailwind.config.js
+
+*/downloads/*

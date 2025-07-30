@@ -294,7 +294,7 @@ def merge_with_existing(new_data, old_data):
     
     # Merge subject dictionary
     old_subject_dict = old_data.get('subjectDict', {})
-    new_subject_dict = {k: f'0-{k}' for k in subjects}
+    new_subject_dict = {k: k.replace("-", " ").title() for k in subjects}
     merged_subject_dict = {}
     
     stats = {'subjects_preserved': 0, 'subjects_new': 0}
@@ -333,7 +333,7 @@ def create_new_data(data):
     """Create new data structure from scraped data."""
     subjects, title_to_level, linkdata = data
     return {
-        "subjectDict": {k: f'0-{k}' for k in subjects},
+        "subjectDict": {k: k.replace("-", " ").title() for k in subjects},
         "linkdata": linkdata,
         "titleAbbrevs": clean_title_abbreviations(title_to_level)
     }
@@ -344,26 +344,34 @@ def main():
         # Scrape data
         scraped_data = scrape_data()
         
-        # Load existing data if available
+        # Load existing data and determine version
+        version = 1
+        old_data = None
         try:
-            with open("info.json", "r") as f:
+            with open("data/info.json", "r") as f:
                 old_data = json.load(f)
             logger.info("Found existing info.json file")
+            if isinstance(old_data, dict) and isinstance(old_data.get('version'), int):
+                version = old_data['version'] + 1
+                logger.info(f"Incrementing version from {old_data.get('version')} to {version}")
+            else:
+                logger.info("No valid 'version' key found in info.json, setting version to 1.")
         except (FileNotFoundError, json.JSONDecodeError):
+            logger.info("No existing info.json file found or it is invalid. Setting version to 1.")
             old_data = None
-            logger.info("No existing info.json file found or invalid JSON")
         
         # Process and merge data
         final_data = merge_with_existing(scraped_data, old_data)
+        final_data['version'] = version
         
         # Write to file
-        with open("info.json", "w") as f:
+        with open("data/info.json", "w") as f:
             json.dump(final_data, f, indent=4, sort_keys=True)
         logger.info("Successfully wrote to 'info.json'")
         
         # User inspection and modification cycle
         while True:
-            print(f"\n{Fore.YELLOW}!!! IMPORTANT: Please manually inspect info.json for any errors before proceeding.{Style.RESET_ALL}")
+            print(f"\n{Fore.YELLOW}!!! IMPORTANT: Please manually inspect data/info.json for any errors before proceeding.{Style.RESET_ALL}")
             print("Look for:")
             print(f"{Fore.CYAN}- Incorrect subject mappings")
             print("- Missing or incorrect links")
@@ -371,7 +379,7 @@ def main():
             print(f"- Any other data inconsistencies{Style.RESET_ALL}")
             
             user_choice = input(
-                f"\n{Fore.GREEN}Are you ready to build the database with the current info.json? {Style.RESET_ALL}"
+                f"\n{Fore.GREEN}Are you ready to build the database with the current data/info.json? {Style.RESET_ALL}"
                 f"({Fore.CYAN}y{Style.RESET_ALL}es / {Fore.CYAN}n{Style.RESET_ALL}o, make changes / {Fore.CYAN}q{Style.RESET_ALL}uit): "
             ).lower().strip()
 
@@ -380,17 +388,17 @@ def main():
                 break
             elif user_choice == 'n':
                 input(
-                    f"{Fore.YELLOW}Okay, please make any necessary changes to info.json now. \n"
+                    f"{Fore.YELLOW}Okay, please make any necessary changes to data/info.json now. \n"
                     f"After saving your changes, press Enter here to re-check...{Style.RESET_ALL} "
                 )
                 # Reload data to reflect changes for the next iteration or final build (optional but good practice)
                 try:
-                    with open("info.json", "r") as f:
+                    with open("data/info.json", "r") as f:
                         final_data = json.load(f) # Re-load for consistency if needed by buildDB directly
                     logger.info("Re-checked info.json after potential user changes.")
                 except (FileNotFoundError, json.JSONDecodeError) as e:
-                    logger.error(f"Error reloading info.json after user indicated changes: {e}")
-                    print(f"{Fore.RED}Could not reload info.json. Please ensure it's valid or choose 'q' to quit.{Style.RESET_ALL}")
+                    logger.error(f"Error reloading data/info.json after user indicated changes: {e}")
+                    print(f"{Fore.RED}Could not reload data/info.json. Please ensure it's valid or choose 'q' to quit.{Style.RESET_ALL}")
                     # Optionally, force quit or loop back to 'n' without proceeding.
                     continue # Loop back to the prompt
             elif user_choice == 'q':
@@ -402,7 +410,7 @@ def main():
         
         # Build database
         import buildDB
-        buildDB.create_database("info.json", "info.db", interactive=INTERACTIVE)
+        buildDB.create_database("data/info.json", "data/info.db", interactive=INTERACTIVE)
         
     except Exception as e:
         logger.error(f"An error occurred: {e}")

@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Set Download Path - UIL Downloads</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-gray-100 dark:bg-gray-900 flex items-center justify-center">
+    
+    <!-- Centered Dialog -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8 w-full max-w-lg mx-4">
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-6 text-center">Set Download Path</h1>
+        
+        <form id="path-form" onsubmit="setPath(event)" class="space-y-4">
+            <div>
+                <label for="path-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Directory Path
+                </label>
+                <input 
+                    type="text" 
+                    id="path-input" 
+                    class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="e.g., ~/Downloads/UIL or /Users/username/Documents/UIL"
+                    value="{{ current_path }}"
+                    autocomplete="off"
+                    autofocus>
+                
+                <!-- Validation messages -->
+                <div id="validation-message" class="mt-2 text-sm hidden"></div>
+                <div id="absolute-path" class="mt-1 text-xs text-gray-500 dark:text-gray-400 hidden"></div>
+            </div>
+            
+            <!-- Tips -->
+            <div class="p-3 bg-blue-50 dark:bg-blue-900/30 rounded-md">
+                <p class="text-sm text-blue-800 dark:text-blue-200">
+                    <strong>Tips:</strong><br>
+                    • Shortcuts (such as <code>~/</code>) are supported<br>
+                    • Directory will be created if it doesn't exist<br>
+                    • Program must have write permissions
+                </p>
+            </div>
+            
+            <!-- Buttons -->
+            <div class="flex gap-3">
+                <button 
+                    type="button" 
+                    onclick="validatePath()" 
+                    class="px-6 py-3 bg-gray-500 hover:bg-gray-600 text-white rounded-md transition-colors duration-200 font-medium">
+                    Validate Path
+                </button>
+                <button 
+                    type="submit" 
+                    class="flex-1 px-6 py-3 bg-green-500 hover:bg-green-600 text-white rounded-md transition-colors duration-200 font-medium">
+                    Set Path
+                </button>
+                <a 
+                    href="/" 
+                    class="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-md transition-colors duration-200 font-medium text-center">
+                    Back
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        // clear validation messages
+        function clearValidation() {
+            const validationMsg = document.getElementById('validation-message');
+            const absolutePath = document.getElementById('absolute-path');
+            validationMsg.classList.add('hidden');
+            absolutePath.classList.add('hidden');
+        }
+
+        // validate path function
+        async function validatePath() {
+            const path = document.getElementById('path-input').value.trim();
+            const validationMsg = document.getElementById('validation-message');
+            const absolutePath = document.getElementById('absolute-path');
+            
+            if (!path) {
+                validationMsg.textContent = 'Please enter a path';
+                validationMsg.className = 'mt-2 text-sm block text-red-600';
+                absolutePath.classList.add('hidden');
+                return false;
+            }
+            
+            try {
+                const response = await fetch('/api/validate-path', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ path: path })
+                });
+                
+                const result = await response.json();
+                
+                if (result.valid) {
+                    validationMsg.textContent = result.message;
+                    validationMsg.className = 'mt-2 text-sm block text-green-600';
+                    
+                    if (result.absolute_path) {
+                        absolutePath.textContent = `Resolves to: ${result.absolute_path}`;
+                        absolutePath.classList.remove('hidden');
+                    }
+                } else {
+                    validationMsg.textContent = result.error;
+                    validationMsg.className = 'mt-2 text-sm block text-red-600';
+                    
+                    if (result.absolute_path) {
+                        absolutePath.textContent = `Resolves to: ${result.absolute_path}`;
+                        absolutePath.classList.remove('hidden');
+                    } else {
+                        absolutePath.classList.add('hidden');
+                    }
+                }
+                
+                return result.valid;
+                
+            } catch (error) {
+                validationMsg.textContent = 'Error validating path';
+                validationMsg.className = 'mt-2 text-sm block text-red-600';
+                absolutePath.classList.add('hidden');
+                return false;
+            }
+        }
+
+        // set path function (triggered by form submit and Enter key)
+        async function setPath(event) {
+            event.preventDefault();
+            
+            const path = document.getElementById('path-input').value.trim();
+            const validationMsg = document.getElementById('validation-message');
+            const absolutePath = document.getElementById('absolute-path');
+            
+            if (!path) {
+                validationMsg.textContent = 'Please enter a path';
+                validationMsg.className = 'mt-2 text-sm block text-red-600';
+                return;
+            }
+            
+            // show loading state
+            const submitBtn = event.target.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+            submitBtn.textContent = 'Setting...';
+            submitBtn.disabled = true;
+            
+            try {
+                const response = await fetch('/api/set-path', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ path: path })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    validationMsg.textContent = `✓ ${result.message}`;
+                    validationMsg.className = 'mt-2 text-sm block text-green-600';
+                    
+                    if (result.absolute_path) {
+                        absolutePath.textContent = `New download directory: ${result.absolute_path}`;
+                        absolutePath.classList.remove('hidden');
+                    }
+                    
+                    // auto-redirect after success
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 2000);
+                    
+                    submitBtn.textContent = 'Success! Redirecting...';
+                    
+                } else {
+                    validationMsg.textContent = result.error;
+                    validationMsg.className = 'mt-2 text-sm block text-red-600';
+                    absolutePath.classList.add('hidden');
+                    
+                    submitBtn.textContent = originalText;
+                    submitBtn.disabled = false;
+                }
+                
+            } catch (error) {
+                validationMsg.textContent = 'Error setting download path';
+                validationMsg.className = 'mt-2 text-sm block text-red-600';
+                absolutePath.classList.add('hidden');
+                
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+            }
+        }
+
+        // auto-validate on input change (with debounce)
+        let timeout;
+        document.getElementById('path-input').addEventListener('input', function() {
+            clearTimeout(timeout);
+            timeout = setTimeout(validatePath, 500);
+        });
+
+        // initial validation when page loads
+        window.addEventListener('load', function() {
+            validatePath();
+        });
+    </script>
+</body>
+</html>
