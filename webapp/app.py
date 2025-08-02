@@ -1,3 +1,7 @@
+if __name__ == '__main__':
+    print("Please use the main.py script to start the application.")
+    exit(1)
+
 import os
 import json
 import logging
@@ -7,43 +11,28 @@ from datetime import datetime
 from flask import Flask, render_template, request, jsonify, send_file
 from werkzeug.utils import secure_filename
 from sqlalchemy import func
-from models import db, Contest
-from buildDB import repopulate_database
-from downloadInfo import update_info_from_online
+from webapp.models import db, Contest
+from setup.buildDB import repopulate_database
+from setup.downloadInfo import update_info_from_online
+from setup.mylogging import LOGGER as logger
+from main import data_path
 
 # build tailwindcss
 # os.system("npx tailwindcss -i ./static/css/in.css -o ./static/css/out.css")
 
 # Load configuration
-CONFIG_FILE = Path("data/config.json")
+CONFIG_FILE = data_path / "config.cfg"
 config_data = {}
 if CONFIG_FILE.exists():
     with open(CONFIG_FILE, 'r') as f:
         config_data = json.load(f)
 
-DOWNLOADS_DIR = Path(config_data.get('download_dir', 'downloads'))
+DOWNLOADS_DIR = Path(config_data.get('download_dir'))
 DOWNLOADS_DIR.mkdir(parents=True, exist_ok=True)
 
-LOGS_DIR = Path(config_data.get('logs_dir', 'logs'))
-LOGS_DIR.mkdir(parents=True, exist_ok=True)
-
-# Configure logging
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-
-# Create logs directory if it doesn't exist
-os.makedirs(LOGS_DIR, exist_ok=True)
-
-file_handler = logging.FileHandler(LOGS_DIR / 'dev.log')
-file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
-console_handler = logging.StreamHandler()
-console_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
-
-logger.addHandler(file_handler)
-logger.addHandler(console_handler)
-
 # Create Flask app
-app = Flask(__name__)
+root_path = Path(__file__).parent
+app = Flask(__name__, template_folder=root_path / "templates", static_folder=root_path / "static")
 app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{os.path.abspath("data/info.db")}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
@@ -903,8 +892,3 @@ def set_download_path():
     except Exception as e:
         logger.error(f"Error setting download path: {e}")
         return jsonify({"success": False, "error": "Failed to set download path"})
-
-if __name__ == '__main__':
-    logger.error("Please use the main.py script to start the application.")
-    exit(1)
-    app.run(debug=False, port=5001) 

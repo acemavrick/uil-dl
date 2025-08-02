@@ -1,20 +1,13 @@
 # downloads and updates info.json if needed
 import json
+import shutil
 import requests
 import tempfile
-import logging
 from pathlib import Path
+from setup.mylogging import LOGGER as logger
 
-# LINK = "https://raw.githubusercontent.com/acemavrick/uil-dl/refs/heads/data/info.json"
-LINK = "https://raw.githubusercontent.com/acemavrick/uil-dl/refs/heads/improvements/data/info.json"
-# LINK = "http://localhost:8000/info.json"
-
-# configure basic logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
+# LINK = "https://raw.githubusercontent.com/acemavrick/uil-dl/refs/heads/main/data/info.json"
+LINK = "http://localhost:8000/info.json"
 
 def download_info(path: Path):
     """Download the latest info.json from GitHub."""
@@ -29,7 +22,7 @@ def download_info(path: Path):
         logger.error(f"Failed to download info.json: {e}")
         return False
 
-def update_info_from_online():
+def update_info_from_online(data_dir: Path):
     """Downloads the latest info.json from GitHub and updates the local info.json if needed."""
     temp_path = Path(tempfile.gettempdir()) / "info.json"
     downloaded = download_info(temp_path)
@@ -42,8 +35,8 @@ def update_info_from_online():
         online_info = json.load(f)
     
     # load the local info.json, if it exists
-    if Path("data/info.json").exists():
-        with open("data/info.json", "r") as f:
+    if (data_dir / "info.json").exists():
+        with open(data_dir / "info.json", "r") as f:
             local_info = json.load(f)
         
         local_version = local_info.get("version", 0)
@@ -52,18 +45,15 @@ def update_info_from_online():
         logger.info(f"local_version: {local_version}, online_version: {online_version}")
         if local_version < online_version:
             logger.info(f"Updating local: {local_version} -> {online_version}")
-            # update the local info.json
-            with open("data/info.json", "w") as f:
-                json.dump(online_info, f, indent=4)
+
+            # copy the online info.json to the local info.json
+            shutil.copy(temp_path, data_dir / "info.json")
+
             return True
         else:
             logger.info("No update needed")
             return False
     else:
         logger.info("No local info.json found, creating one")
-        with open("data/info.json", "w") as f:
-            json.dump(online_info, f, indent=4)
+        shutil.copy(temp_path, data_dir / "info.json")
         return True
-
-if __name__ == "__main__":
-    update_info_from_online()

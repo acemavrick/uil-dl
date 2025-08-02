@@ -2,57 +2,10 @@ import json
 import os
 import sqlite3
 import logging
-from colorama import init, Fore, Style
 from typing import Dict, List, Tuple, Optional, Any
 from dataclasses import dataclass, field
 from pathlib import Path
-
-# Initialize colorama for cross-platform color support
-init()
-
-# Configure colored logging
-class ColoredFormatter(logging.Formatter):
-    """Custom formatter that adds colors to log levels."""
-    COLORS = {
-        'DEBUG': Fore.BLUE,
-        'INFO': Fore.GREEN,
-        'WARNING': Fore.YELLOW,
-        'ERROR': Fore.RED,
-        'CRITICAL': Fore.RED + Style.BRIGHT
-    }
-
-    def format(self, record):
-        original_levelname = record.levelname
-        if original_levelname in self.COLORS:
-            colored_levelname = f"{self.COLORS[original_levelname]}{original_levelname}{Style.RESET_ALL}"
-            # Colorize levelname and message for logging output.
-            # This approach avoids complex Formatter method overrides by temporarily
-            # modifying record fields before passing to the base class format method.
-            colored_msg = f"{self.COLORS[original_levelname]}{record.msg}{Style.RESET_ALL}"
-            
-            # Store original msg, colorize the record's msg field for the current formatter pass
-            original_msg = record.msg
-            record.msg = colored_msg
-            record.levelname = colored_levelname # Colorize levelname for the formatter
-            
-            formatted_log = super().format(record)
-            
-            # Restore original for other handlers / sanity
-            record.levelname = original_levelname
-            record.msg = original_msg
-            return formatted_log
-            
-        return super().format(record)
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-logger.handlers = [] 
-handler = logging.StreamHandler()
-# Ensure the format string does not double-color if we pre-color parts
-# The ColoredFormatter's job is to take a plain record and colorize it.
-handler.setFormatter(ColoredFormatter('%(asctime)s - %(levelname)s - %(message)s'))
-logger.addHandler(handler)
-logger.propagate = False
+from setup.mylogging import LOGGER as logger
 
 @dataclass
 class Contest:
