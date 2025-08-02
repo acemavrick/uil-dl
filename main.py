@@ -2,6 +2,7 @@ import sys
 import portalocker
 import json
 import setup.mylogging
+import webview
 from pathlib import Path
 from platformdirs import user_data_path
 
@@ -138,20 +139,6 @@ def start_app():
     import threading
     import webapp.app as myapp
 
-    def print_app_started(app_thread):
-        if app_thread.is_alive():
-            print(f"""
-UIL-DL is now running.
-Access it through your browser at: http://127.0.0.1:{port}
-Downloads directory: {downloads_dir_path.as_uri()}
-Log file: {(data_path / "uil-dl.log").as_uri()}
-Press Ctrl+C to shutdown
-            """)
-        else:
-            print("xx app failed to start")
-            print("Press Ctrl+C to shutdown")
-
-    # find a free port
     port = find_free_port()
 
     if port is None:
@@ -163,16 +150,25 @@ Press Ctrl+C to shutdown
     # start app in a separate thread
     app_thread = threading.Thread(target=myapp.app.run, kwargs={"debug": False, "port": port})
     app_thread.daemon = True  # allow the thread to exit when main program exits
-
-    timer = threading.Timer(1.5, lambda: print_app_started(app_thread))
-    timer.daemon = True
-
-    print("Starting app...\n")
-    timer.start()
     app_thread.start()
+    
+    print(f"""
+UIL-DL is now running.
+Access it through your browser at: http://127.0.0.1:{port}
+Downloads directory: {downloads_dir_path.as_uri()}
+Log file: {(data_path / "uil-dl.log").as_uri()}
+Close the app window to shut down.
+            """)
 
-    timer.join()
-    app_thread.join()
+    # Create and start a webview window
+    webview.create_window(
+        'uil-dl',
+        f'http://127.0.0.1:{port}',
+        width=1280,
+        height=800,
+        resizable=True
+    )
+    webview.start()
 
 def shutdown():
     import sys
@@ -194,6 +190,7 @@ if __name__ == "__main__":
         verify_info_json()
         verify_info_db()
         start_app()
+        shutdown()
     except KeyboardInterrupt:
         shutdown()
     finally:
