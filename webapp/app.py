@@ -6,6 +6,8 @@ import os
 import json
 import logging
 import threading
+import shutil
+import tempfile
 from pathlib import Path
 from datetime import datetime
 from flask import Flask, render_template, request, jsonify, send_file
@@ -47,6 +49,9 @@ if CONFIG_FILE.exists():
 
 DOWNLOADS_DIR = _resolve_download_path(config_data.get('download_dir', config_data.get('default_download_dir', Path.home() / 'Downloads')))
 DOWNLOADS_DIR.mkdir(parents=True, exist_ok=True)
+
+TEMP_DIR = Path(tempfile.gettempdir()) / 'uil-dl-downloads'
+TEMP_DIR.mkdir(parents=True, exist_ok=True)
 
 # Create Flask app
 root_path = Path(__file__).parent
@@ -97,7 +102,7 @@ def _get_download_lock(cache_key: str) -> threading.Lock:
 
 class DownloadCache:
     """Class to manage the download cache."""
-    CACHE_FILE = "cache_manifest.json"
+    CACHE_FILE = ".cache_manifest.json"
     
     def __init__(self, downloads_dir=DOWNLOADS_DIR):
         self.downloads_dir = Path(downloads_dir)
@@ -724,14 +729,20 @@ def _perform_download(contest_item, link_type):
 
             formatted_filename = format_filename(contest_item.subject, contest_item.level, contest_item.year, link_type, file_extension)
             file_path = DOWNLOADS_DIR / formatted_filename
-            tmp_path = file_path.with_suffix(file_path.suffix + '.tmp')
+            tmp_file_path = TEMP_DIR / formatted_filename
 
-            # atomic streaming write to tmp then rename
-            with open(tmp_path, 'wb') as f:
-                for chunk in response.iter_content(chunk_size=8192):
-                    if chunk:
-                        f.write(chunk)
-            tmp_path.replace(file_path)
+            # atomic streaming write to a temporary file, then move it
+            try:
+                with open(tmp_file_path, 'wb') as f:
+                    for chunk in response.iter_content(chunk_size=8192):
+                        if chunk:
+                            f.write(chunk)
+                shutil.move(str(tmp_file_path), str(file_path))
+            except Exception:
+                # if something goes wrong, try to clean up the temporary file
+                if tmp_file_path.exists():
+                    tmp_file_path.unlink()
+                raise # re-raise the exception to be caught by the outer handler
 
             download_cache.add_to_cache(cache_key, str(file_path))
             return {"item_id": contest_item.id, "link_type": link_type, "downloaded": True, "cached": False, "file_path": str(file_path)}
