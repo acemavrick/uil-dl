@@ -17,6 +17,24 @@ from setup.downloadInfo import update_info_from_online
 from setup.mylogging import LOGGER as logger
 from main import data_path
 
+
+def _resolve_download_path(path_str: str) -> Path:
+    """
+    Resolves a path string. Relative paths are resolved against ~/Downloads.
+    Absolute paths and paths with '~' are used as is.
+    """
+    if not path_str:
+        raise ValueError("Path string cannot be empty.")
+
+    path_obj = Path(path_str)
+    expanded_path = path_obj.expanduser()
+
+    if not expanded_path.is_absolute():
+        return (Path.home() / 'Downloads' / expanded_path).resolve()
+    else:
+        return expanded_path.resolve()
+
+
 # build tailwindcss
 # os.system("npx tailwindcss -i ./static/css/in.css -o ./static/css/out.css")
 
@@ -27,17 +45,17 @@ if CONFIG_FILE.exists():
     with open(CONFIG_FILE, 'r') as f:
         config_data = json.load(f)
 
-DOWNLOADS_DIR = Path(config_data.get('download_dir'))
+DOWNLOADS_DIR = _resolve_download_path(config_data.get('download_dir', config_data.get('default_download_dir', Path.home() / 'Downloads')))
 DOWNLOADS_DIR.mkdir(parents=True, exist_ok=True)
 
 # Create Flask app
 root_path = Path(__file__).parent
 app = Flask(__name__, template_folder=root_path / "templates", static_folder=root_path / "static")
-app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{os.path.abspath("data/info.db")}'
+app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{os.path.abspath(data_path / "info.db")}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
 
-def get_database_version(db_path='data/info.db'):
+def get_database_version(db_path=data_path / "info.db"):
     """Get the database version from the metadata table."""
     import sqlite3
     try:
@@ -752,6 +770,7 @@ def batch_download():
         logger.error(f"Error in batch download route: {e}")
         return jsonify({"error": str(e)}), 500
 
+
 @app.route('/set-path')
 def set_path_page():
     """Render the path setting page."""
@@ -769,7 +788,7 @@ def validate_path():
         
         # expand user path (~/Downloads becomes /Users/username/Downloads)
         try:
-            path_obj = Path(path_str).expanduser().resolve()
+            path_obj = _resolve_download_path(path_str)
         except Exception as e:
             return jsonify({"valid": False, "error": f"Invalid path format: {str(e)}"})
         
@@ -836,7 +855,7 @@ def set_download_path():
         
         # first validate the path
         try:
-            path_obj = Path(path_str).expanduser().resolve()
+            path_obj = _resolve_download_path(path_str)
         except Exception as e:
             return jsonify({"success": False, "error": f"Invalid path format: {str(e)}"})
         
