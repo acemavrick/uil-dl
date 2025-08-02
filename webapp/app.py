@@ -2,6 +2,7 @@ if __name__ == '__main__':
     print("Please use the main.py script to start the application.")
     exit(1)
 
+import sys
 import os
 import json
 import logging
@@ -54,8 +55,16 @@ TEMP_DIR = Path(tempfile.gettempdir()) / 'uil-dl-downloads'
 TEMP_DIR.mkdir(parents=True, exist_ok=True)
 
 # Create Flask app
-root_path = Path(__file__).parent
-app = Flask(__name__, template_folder=root_path / "templates", static_folder=root_path / "static")
+if getattr(sys, 'frozen', False):
+    # if the application is run as a bundle, the PyInstaller bootloader
+    # extends the sys module by a flag frozen=True and sets the app 
+    # path into variable _MEIPASS
+    root_path = sys._MEIPASS
+    app = Flask(__name__, template_folder=os.path.join(root_path, 'templates'), static_folder=os.path.join(root_path, 'static'))
+else:
+    root_path = Path(__file__).parent
+    app = Flask(__name__, template_folder=root_path / "templates", static_folder=root_path / "static")
+
 app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{os.path.abspath(data_path / "info.db")}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)

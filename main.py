@@ -14,7 +14,9 @@ if not data_path.exists():
     data_path.mkdir(parents=True, exist_ok=True)
     print("OK user data directory created")
 
-print(data_path.as_uri())
+print(f"Data path: {data_path.as_uri()}")
+print("This is where the app stores logs, config, and other important files.\
+     Do not modify this directory unless you know what you are doing.\n")
 
 
 # configure logging to file
@@ -82,13 +84,33 @@ updated_info = False
 def verify_info_json():
     global data_path, updated_info
     import setup.downloadInfo as downloadInfo
-    updated = downloadInfo.update_info_from_online(data_path)
+    from setup.downloadInfo import UpdateResult
+
+    result, err_msg = downloadInfo.update_info_from_online(data_path)
     print()
-    if updated:
+    if result == UpdateResult.UPDATED:
         print("OK info.json updated")
         updated_info = True
-    else:
+    elif result == UpdateResult.NOT_UPDATED:
         print("OK info.json not updated")
+    elif result == UpdateResult.ERROR:
+        print(f"xx Failed to update info.json. Check logs for details")
+        setup.mylogging.LOGGER.error(f"When updating info.json: \n {err_msg}")
+        # check if info.json exists... if it does, then attempt to load it (see if it's valid)
+        if (data_path / "info.json").exists():
+            try:
+                with open(data_path / "info.json", "r") as f:
+                    json.load(f)
+                print("OK local info.json is valid")
+                return
+            except json.JSONDecodeError:
+                print("xx info.json is not valid.")
+        else:
+            print("xx no local info.json found")
+        
+        print("-- No proper info.json found. The app will not work properly.")
+        sys.exit(1)
+
 
 def verify_info_db():
     global data_path, updated_info
