@@ -149,6 +149,9 @@ Press Ctrl+C to shutdown
     timer.start()
     app_thread.start()
 
+    timer.join()
+    app_thread.join()
+
 def shutdown():
     import sys
     print("\n\nShutting down. See you next time!")
@@ -169,8 +172,6 @@ if __name__ == "__main__":
         verify_info_json()
         verify_info_db()
         start_app()
-        while True:
-            pass
     except KeyboardInterrupt:
         shutdown()
     finally:

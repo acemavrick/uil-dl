@@ -544,6 +544,17 @@ def get_contests_htmx():
         logger.error(f"Error in contests route: {e}")
         return f'<tbody><tr><td colspan="7" class="text-center text-red-600">Error loading contests: {str(e)}</td></tr></tbody>'
 
+@app.route('/shutdown', methods=['POST', 'GET'])
+def shutdown():
+    """Shutdown the application."""
+    import os
+    import signal
+    
+    # development server runs in a separate thread, so we need to kill the parent process
+    pid = os.getpid()
+    os.kill(pid, signal.SIGINT)
+    return "Server shutting down. Thank you for using, see you next time!"
+
 @app.route('/api/contests')
 def get_contests():
     """API endpoint to get contest data based on filters."""
