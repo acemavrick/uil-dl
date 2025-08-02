@@ -1,3 +1,5 @@
+import sys
+import portalocker
 import json
 import setup.mylogging
 from pathlib import Path
@@ -11,6 +13,9 @@ if not data_path.exists():
     print("xx user data directory does not exist. creating...")
     data_path.mkdir(parents=True, exist_ok=True)
     print("OK user data directory created")
+
+print(data_path.as_uri())
+
 
 # configure logging to file
 setup.mylogging.setup_logging(data_path)
@@ -150,12 +155,29 @@ def shutdown():
     sys.exit(0)
 
 if __name__ == "__main__":
-    verify_config()
-    verify_info_json()
-    verify_info_db()
-    start_app()
+    LOCKFILEPATH = data_path / ".uil-dl.lock"
+
+    try: 
+        LOCK_FILE = LOCKFILEPATH.open("w")
+        portalocker.lock(LOCK_FILE, portalocker.LOCK_EX | portalocker.LOCK_NB)
+    except portalocker.LockException:
+        print("xx another instance of UIL-DL is running. exiting...")
+        sys.exit(1)
+    
     try:
+        verify_config()
+        verify_info_json()
+        verify_info_db()
+        start_app()
         while True:
             pass
     except KeyboardInterrupt:
         shutdown()
+    finally:
+        portalocker.unlock(LOCK_FILE)
+        LOCK_FILE.close()
+        try:
+            LOCKFILEPATH.unlink()
+        except FileNotFoundError:
+            pass
+        print("OK lock file released")
