@@ -3,8 +3,15 @@ import portalocker
 import json
 import setup.mylogging
 import webview
+import threading
 from pathlib import Path
 from platformdirs import user_data_path
+from time import sleep
+import os
+import webapp.splash
+
+# Global window reference
+window = None
 
 # get user directory
 data_path = user_data_path(appname="uil-dl", appauthor="acemavrick", ensure_exists=True)
@@ -134,64 +141,91 @@ def find_free_port(port_range=range(5000, 60000)):
             continue
     return None
 
-def start_app():
-    print()
-    import threading
-    import webapp.app as myapp
+def initialization_and_app_logic(window):
+    """
+    Runs all initialization tasks and starts the main Flask app
+    while the splash screen is showing.
+    """
+    try:
+        print("Starting initialization...")
+        verify_config()
+        verify_info_json()
+        verify_info_db()
+        print("Initialization complete.")
 
-    port = find_free_port()
+        flask_port = find_free_port()
+        if flask_port is None:
+            print("xx no free port found for the main application")
+            window.destroy()
+            return
 
-    if port is None:
-        print("xx no free port found")
-        return
+        print(f"OK Flask port {flask_port} found")
+        
+        import webapp.app as myapp
+        app_thread = threading.Thread(target=myapp.app.run, kwargs={"debug": False, "port": flask_port})
+        app_thread.daemon = True
+        app_thread.start()
 
-    print(f"OK port {port} found")
-    
-    # start app in a separate thread
-    app_thread = threading.Thread(target=myapp.app.run, kwargs={"debug": False, "port": port})
-    app_thread.daemon = True  # allow the thread to exit when main program exits
-    app_thread.start()
-    
-    print(f"""
+        print(f"""
 UIL-DL is now running.
-Access it through your browser at: http://127.0.0.1:{port}
+Access it through your browser at: http://127.0.0.1:{flask_port}
 Downloads directory: {downloads_dir_path.as_uri()}
 Log file: {(data_path / "uil-dl.log").as_uri()}
-Close the app window to shut down.
-            """)
+                """)
 
-    # Create and start a webview window
-    webview.create_window(
-        'uil-dl',
-        f'http://127.0.0.1:{port}',
-        width=1280,
-        height=800,
-        resizable=True
-    )
-    webview.start()
+        # wait for the app to start
+        sleep(1.5)
+
+        # Fade out splash screen and then navigate
+        # Call the JS function to start the fade-out
+        window.evaluate_js('fadeOutSplash()')
+        sleep(0.5)
+
+        print(f"Loading main application at http://127.0.0.1:{flask_port}")
+        window.load_url(f'http://127.0.0.1:{flask_port}')
+
+    except Exception as e:
+        print(f"xx An error occurred during initialization: {e}")
+        window.destroy()
+
 
 def shutdown():
     import sys
     print("\n\nShutting down. See you next time!")
     sys.exit(0)
 
+
 if __name__ == "__main__":
     LOCKFILEPATH = data_path / ".uil-dl.lock"
 
-    try: 
+    try:
         LOCK_FILE = LOCKFILEPATH.open("w")
         portalocker.lock(LOCK_FILE, portalocker.LOCK_EX | portalocker.LOCK_NB)
     except portalocker.LockException:
         print("xx another instance of UIL-DL is running. exiting...")
         sys.exit(1)
-    
+
     try:
-        verify_config()
-        verify_info_json()
-        verify_info_db()
-        start_app()
+        window = webview.create_window(
+            'uil-dl',
+            html=webapp.splash.SPLASH_HTML,
+            width=1440,
+            height=900,
+            resizable=True,
+            background_color='#121212'
+        )
+
+        # Start the webview GUI. This blocks the main thread.
+        # The 'initialization_and_app_logic' function will run in a separate thread.
+        webview.start(initialization_and_app_logic, args=(window,))
+
+        # This code runs after the webview window is closed
         shutdown()
+
     except KeyboardInterrupt:
+        shutdown()
+    except Exception as e:
+        print(f"An unexpected error occurred in the main thread: {e}")
         shutdown()
     finally:
         portalocker.unlock(LOCK_FILE)

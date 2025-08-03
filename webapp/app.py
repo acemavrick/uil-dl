@@ -247,6 +247,11 @@ def generate_cache_key(subject, level, year, link_type):
     base_key = f"{subject.replace(' ', '_')}_{year}_{level.replace(' ', '_')}"
     return f"{base_key}_{link_type}"
 
+@app.route('/splash')
+def splash():
+    """Render the splash screen."""
+    return render_template('splash.html')
+
 @app.route('/')
 def index():
     """Render the main page."""
