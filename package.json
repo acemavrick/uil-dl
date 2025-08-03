@@ -14,7 +14,7 @@
   "author": "acemavrick",
   "type": "commonjs",
   "scripts": {
-    "buildcss": "tailwindcss -i ./static/css/in.css -o ./static/css/out.css"
+    "buildcss": "tailwindcss -i ./webapp/static/css/in.css -o ./webapp/static/css/out.css"
   },
   "dependencies": {
     "@tailwindcss/cli": "^4.1.8",
