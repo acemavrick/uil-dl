@@ -23,8 +23,8 @@ if not data_path.exists():
     print("OK user data directory created")
 
 print(f"Data path: {data_path.as_uri()}")
-print("This is where the app stores logs, config, and other important files.\
-     Do not modify this directory unless you know what you are doing.\n")
+print("This is where the app stores logs, config, and other important files.\n"
+      "Do not modify this directory unless you know what you are doing.\n")
 
 
 # configure logging to file

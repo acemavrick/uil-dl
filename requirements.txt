@@ -8,12 +8,14 @@ click==8.2.1
 Flask==3.1.1
 Flask-SocketIO==5.5.1
 Flask-SQLAlchemy==3.1.1
+greenlet==3.2.3
 h11==0.16.0
 idna==3.10
 itsdangerous==2.2.0
 Jinja2==3.1.6
 MarkupSafe==3.0.2
 packaging==25.0
+pillow==11.3.0
 platformdirs==4.3.8
 portalocker==3.2.0
 proxy_tools==0.1.0
@@ -25,6 +27,7 @@ PyQt6_sip==13.10.2
 python-engineio==4.12.2
 python-socketio==5.13.0
 pywebview==5.4
+QtPy==2.4.3
 requests==2.32.4
 selectolax==0.3.32
 setuptools==80.9.0

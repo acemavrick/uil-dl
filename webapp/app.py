@@ -294,7 +294,7 @@ def refresh_info():
         logger.info("Starting refresh info process.")
         
         # Call the update_info_from_online function
-        updated = update_info_from_online()
+        updated = update_info_from_online(data_dir=data_path)
         
         if updated:
             logger.info("Info refreshed successfully - new version downloaded.")
