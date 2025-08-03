@@ -152,7 +152,7 @@ def _load_and_parse_json_data(
         logger.error(f"Error loading or parsing JSON data from {json_file_path}: {e}")
         return False
 
-def create_database(info_json_path='data/info.json', db_path='data/info.db', interactive=True):
+def create_database(info_json_path: str, db_path: str, interactive: bool = True):
     if os.path.exists(db_path):
         logger.info(f"Removing existing database at {db_path}")
         try:
@@ -167,13 +167,13 @@ def create_database(info_json_path='data/info.json', db_path='data/info.db', int
         if not _load_and_parse_json_data(info_json_path, parsed_data_store):
             if interactive:
                 choice = input(
-                    f"{Fore.RED}Failed to load/parse {info_json_path}. "
-                    f"Do you want to fix the file and try again? (y/n): {Style.RESET_ALL}"
+                    f"Failed to load/parse {info_json_path}. "
+                    f"Do you want to fix the file and try again? (y/n): "
                 ).lower().strip()
                 if choice == 'y':
                     input(
-                        f"{Fore.YELLOW}Okay, please make any necessary changes to {info_json_path} now. \n"
-                        f"After saving your changes, press Enter here to re-process...{Style.RESET_ALL} "
+                        f"Okay, please make any necessary changes to {info_json_path} now. \n"
+                        f"After saving your changes, press Enter here to re-process... "
                     )
                     continue # Re-attempt parsing
                 else:
@@ -197,21 +197,21 @@ def create_database(info_json_path='data/info.json', db_path='data/info.db', int
         logger.info(f"  - Level abbrevs not in titleAbbrevs: {stats['missing_levels']}")
 
         if interactive:
-            print(f"{Fore.YELLOW}Summary of data parsed from {Fore.CYAN}{info_json_path}{Style.RESET_ALL}:")
-            print(f"  - {Fore.GREEN}{stats['total_contests']} unique contests identified.{Style.RESET_ALL}")
+            print(f"Summary of data parsed from {info_json_path}:")
+            print(f"  - {stats['total_contests']} unique contests identified.")
             print(f"    - {stats['with_pdf_link']} have a PDF link.")
             print(f"    - {stats['with_zip_link']} have a ZIP link.")
             print(f"    - {stats['with_other_link']} have an OTHER link.")
             if any(stats[k] > 0 for k in ['invalid_keys', 'invalid_years', 'missing_subjects', 'missing_levels']):
-                print(f"{Fore.YELLOW}Warnings from parsing:{Style.RESET_ALL}")
-                if stats['invalid_keys'] > 0: print(f"  - {Fore.YELLOW}{stats['invalid_keys']} invalid keys found.{Style.RESET_ALL}")
-                if stats['invalid_years'] > 0: print(f"  - {Fore.YELLOW}{stats['invalid_years']} invalid years found.{Style.RESET_ALL}")
-                if stats['missing_subjects'] > 0: print(f"  - {Fore.YELLOW}{stats['missing_subjects']} subject keys were not in subjectDict (used raw key).{Style.RESET_ALL}")
-                if stats['missing_levels'] > 0: print(f"  - {Fore.YELLOW}{stats['missing_levels']} level abbreviations were not in titleAbbrevs (used raw abbrev).{Style.RESET_ALL}")
+                print(f"Warnings from parsing:")
+                if stats['invalid_keys'] > 0: print(f"  - {stats['invalid_keys']} invalid keys found.")
+                if stats['invalid_years'] > 0: print(f"  - {stats['invalid_years']} invalid years found.")
+                if stats['missing_subjects'] > 0: print(f"  - {stats['missing_subjects']} subject keys were not in subjectDict (used raw key).")
+                if stats['missing_levels'] > 0: print(f"  - {stats['missing_levels']} level abbreviations were not in titleAbbrevs (used raw abbrev).")
             
             user_choice = input(
-                f"{Fore.GREEN}Proceed with building the database using this data? {Style.RESET_ALL}"
-                f"({Fore.CYAN}y{Style.RESET_ALL}es / {Fore.CYAN}n{Style.RESET_ALL}o, re-edit {info_json_path} and re-parse / {Fore.CYAN}q{Style.RESET_ALL}uit): "
+                f"Proceed with building the database using this data? "
+                f"(y/n, re-edit {info_json_path} and re-parse / quit): "
             ).lower().strip()
 
             if user_choice == 'y':
@@ -219,15 +219,15 @@ def create_database(info_json_path='data/info.json', db_path='data/info.db', int
                 break # Exit while loop and proceed to DB operations
             elif user_choice == 'n':
                 input(
-                    f"{Fore.YELLOW}Okay, please make any necessary changes to {info_json_path} now. \n"
-                    f"After saving your changes, press Enter here to re-process...{Style.RESET_ALL} "
+                    f"Okay, please make any necessary changes to {info_json_path} now. \n"
+                    f"After saving your changes, press Enter here to re-process... "
                 )
                 # Loop continues, _load_and_parse_json_data will re-run
             elif user_choice == 'q':
                 logger.info("User chose to quit database creation before DDL/DML operations.")
                 return
             else:
-                print(f"{Fore.RED}Invalid choice. Please enter 'y', 'n', or 'q'.{Style.RESET_ALL}")
+                print(f"Invalid choice. Please enter 'y', 'n', or 'q'.")
         else: # Non-interactive mode
             logger.info("Non-interactive mode: proceeding with parsed data.")
             break # Proceed directly
@@ -294,7 +294,7 @@ def create_database(info_json_path='data/info.json', db_path='data/info.db', int
                 raise
             
             conn.commit()
-            logger.info(f"{Fore.GREEN}Database creation completed successfully! Schema and data populated in {db_path}{Style.RESET_ALL}")
+            logger.info(f"Database creation completed successfully! Schema and data populated in {db_path}")
             
     except sqlite3.Error as e:
         logger.error(f"A database error occurred: {e}")
@@ -303,7 +303,7 @@ def create_database(info_json_path='data/info.json', db_path='data/info.db', int
         logger.error(f"An unexpected error occurred during database operations: {e}")
         raise
 
-def repopulate_database(info_json_path='data/info.json', db_path='data/info.db'):
+def repopulate_database(info_json_path: str, db_path: str):
     """
     Repopulates both 'contests' and 'metadata' tables with fresh data from the JSON file
     without dropping the table or the database file. This is safe to call
@@ -351,6 +351,6 @@ def repopulate_database(info_json_path='data/info.json', db_path='data/info.db')
 
 if __name__ == '__main__':
     try:
-        create_database('data/info.json', 'data/info.db', interactive=True)
+        create_database('info.json', 'info.db', interactive=True)
     except Exception as e:
         logger.critical(f"Database creation process failed: {e}")

@@ -396,3 +396,4 @@ pyrightconfig.json
 tailwind.config.js
 
 */downloads/*
+*.ai

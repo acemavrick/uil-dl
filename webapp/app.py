@@ -16,7 +16,7 @@ from werkzeug.utils import secure_filename
 from sqlalchemy import func
 from webapp.models import db, Contest
 from setup.buildDB import repopulate_database
-from setup.downloadInfo import update_info_from_online
+from setup.downloadInfo import UpdateResult, update_info_from_online
 from setup.mylogging import LOGGER as logger
 from main import data_path
 
@@ -294,16 +294,18 @@ def refresh_info():
         logger.info("Starting refresh info process.")
         
         # Call the update_info_from_online function
-        updated = update_info_from_online(data_dir=data_path)
+        updated, value = update_info_from_online(data_dir=data_path)
         
-        if updated:
+        if updated == UpdateResult.UPDATED:
             logger.info("Info refreshed successfully - new version downloaded.")
             # rebuild the database
-            repopulate_database(db_path=app.config['SQLALCHEMY_DATABASE_URI'].replace('sqlite:///', ''))
+            repopulate_database(info_json_path=data_path / "info.json", db_path=app.config['SQLALCHEMY_DATABASE_URI'].replace('sqlite:///', ''))
             return "Info refreshed successfully - new version downloaded. Database rebuilt.", 200
-        else:
+        elif updated == UpdateResult.NOT_UPDATED:
             logger.info("Info refresh completed - no update needed.")
-            return "Info refresh completed - no update needed.", 200
+            return "No update needed.", 200
+        else:
+            return "Failed to refresh info.", 500
     except Exception as e:
         logger.error(f"Failed to refresh info: {e}", exc_info=True)
         return f"Failed to refresh info: {str(e)}", 500
