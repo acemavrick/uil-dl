@@ -10,7 +10,7 @@
     "type": "git",
     "url": "git+https://github.com/acemavrick/uil-dl.git"
   },
-  "license": "ISC",
+  "license": "MIT",
   "author": "acemavrick",
   "type": "commonjs",
   "scripts": {

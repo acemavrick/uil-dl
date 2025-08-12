@@ -29,7 +29,6 @@ It provides a clean, intuitive interface for filtering and accessing contest fil
 - **Smart Caching**: Downloaded files are cached locally to avoid redundant downloads
 - **Concurrent Downloads**: Efficiently manage multiple downloads
 - **Responsive UI**: Clean and easy to use interface
-- **Responsive UI**: Clean and easy-to-use interface
 
 ## Installation
 

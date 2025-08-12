@@ -288,7 +288,7 @@ def index():
         # Get cache stats and database version even when there's an error
         cache_stats = download_cache.get_stats()
         db_version = get_database_version()
-        return render_template('index.html', error=str(e), contests=[], cache_stats=cache_stats, database_version=db_version)
+        return render_template('index.html', error=str(e), contests=[], cache_stats=cache_stats, info_version=db_version)
 
 @app.route('/refresh-info', methods=['POST'])
 def refresh_info():
