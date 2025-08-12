@@ -259,7 +259,11 @@ def index():
     try:
         # Use SQLAlchemy to get distinct values for filters
         subjects = [s[0] for s in db.session.query(Contest.subject).distinct().order_by(Contest.subject).all()]
-        levels = [l[0] for l in db.session.query(Contest.level).distinct().order_by(Contest.level).all()]
+        # sort levels using level_sort if available
+        try:
+            levels = [l[0] for l in db.session.query(Contest.level).distinct().order_by(Contest.level_sort, Contest.level).all()]
+        except Exception:
+            levels = [l[0] for l in db.session.query(Contest.level).distinct().order_by(Contest.level).all()]
         years = [y[0] for y in db.session.query(Contest.year).distinct().order_by(Contest.year.desc()).all()]
 
         # Get cache stats and database version
@@ -500,10 +504,11 @@ def get_contests_htmx():
             else:
                 query = query.order_by(Contest.subject.asc())
         elif sort_by == 'level':
+            # use level_sort when present
             if sort_dir == 'desc':
-                query = query.order_by(Contest.level.desc())
+                query = query.order_by(Contest.level_sort.desc(), Contest.level.desc())
             else:
-                query = query.order_by(Contest.level.asc())
+                query = query.order_by(Contest.level_sort.asc(), Contest.level.asc())
         elif sort_by == 'year':
             if sort_dir == 'desc':
                 query = query.order_by(Contest.year.desc())
@@ -511,7 +516,7 @@ def get_contests_htmx():
                 query = query.order_by(Contest.year.asc())
         else:
             # Default sorting
-            query = query.order_by(Contest.subject, Contest.level, Contest.year.desc())
+            query = query.order_by(Contest.subject, Contest.level_sort, Contest.level, Contest.year.desc())
         
         contests = query.all()
         
@@ -597,7 +602,7 @@ def get_contests():
             query = query.filter(Contest.year.in_([int(y) for y in years]))
 
         # Order results for consistent presentation
-        query = query.order_by(Contest.subject, Contest.level, Contest.year.desc())
+        query = query.order_by(Contest.subject, Contest.level_sort, Contest.level, Contest.year.desc())
         
         contests = query.all()
         

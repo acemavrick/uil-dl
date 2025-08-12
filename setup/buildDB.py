@@ -7,6 +7,27 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from setup.mylogging import LOGGER as logger
 
+# canonical level order for sorting
+_LEVEL_ORDER = [
+    'study packet',
+    'invitational a',
+    'invitational b',
+    'district',
+    'region',
+    'state',
+]
+
+def _compute_level_sort(level_name: str) -> int:
+    """return integer sort key for a level; unknowns sort last"""
+    try:
+        normalized = (level_name or '').strip().lower()
+    except Exception:
+        normalized = ''
+    try:
+        return _LEVEL_ORDER.index(normalized)
+    except ValueError:
+        return 999
+
 @dataclass
 class Contest:
     """Represents a single contest event, with links categorized by type."""
@@ -241,12 +262,13 @@ def create_database(info_json_path: str, db_path: str, interactive: bool = True)
             c = conn.cursor()
             logger.info("Creating database tables...")
             try:
-                # contests table
+                # contests table (includes level_sort for custom ordering)
                 c.execute('''CREATE TABLE contests (
                     id INTEGER PRIMARY KEY,
                     subject TEXT NOT NULL,
                     level TEXT NOT NULL,
                     year INTEGER NOT NULL,
+                    level_sort INTEGER NOT NULL,
                     pdf_link TEXT,
                     zip_link TEXT,
                     other_link TEXT,
@@ -267,12 +289,18 @@ def create_database(info_json_path: str, db_path: str, interactive: bool = True)
                 # insert contest data
                 insert_data = [
                     (
-                        entry.subject, entry.level, entry.year,
-                        entry.pdf_link, entry.zip_link, entry.other_link
-                    ) for entry in contests_to_insert
+                        entry.subject,
+                        entry.level,
+                        entry.year,
+                        _compute_level_sort(entry.level),
+                        entry.pdf_link,
+                        entry.zip_link,
+                        entry.other_link,
+                    )
+                    for entry in contests_to_insert
                 ]
                 c.executemany(
-                    'INSERT INTO contests (subject, level, year, pdf_link, zip_link, other_link) VALUES (?, ?, ?, ?, ?, ?)',
+                    'INSERT INTO contests (subject, level, year, level_sort, pdf_link, zip_link, other_link) VALUES (?, ?, ?, ?, ?, ?, ?)',
                     insert_data
                 )
                 
@@ -289,6 +317,7 @@ def create_database(info_json_path: str, db_path: str, interactive: bool = True)
             logger.info("Creating database index...")
             try:
                 c.execute('CREATE INDEX idx_contests_subject_level_year ON contests(subject, level, year)')
+                c.execute('CREATE INDEX idx_contests_subject_levelsort_year ON contests(subject, level_sort, year)')
             except sqlite3.Error as e:
                 logger.error(f"Error creating index: {e}")
                 raise
@@ -323,6 +352,17 @@ def repopulate_database(info_json_path: str, db_path: str):
         # The 'with' statement handles the transaction (commit/rollback)
         with sqlite3.connect(db_path) as conn:
             c = conn.cursor()
+
+            # ensure schema has level_sort column
+            try:
+                c.execute("PRAGMA table_info(contests)")
+                cols = [row[1] for row in c.fetchall()]
+                if 'level_sort' not in cols:
+                    logger.info("Adding missing column 'level_sort' to contests table...")
+                    c.execute('ALTER TABLE contests ADD COLUMN level_sort INTEGER')
+            except sqlite3.Error as e:
+                logger.error(f"Error checking/altering schema for level_sort: {e}")
+                raise
             
             logger.info("Deleting all existing entries from 'contests' table.")
             c.execute('DELETE FROM contests')
@@ -333,14 +373,26 @@ def repopulate_database(info_json_path: str, db_path: str):
             logger.info(f"Inserting {len(contests_to_insert)} new contest entries...")
             insert_data = [
                 (
-                    entry.subject, entry.level, entry.year,
-                    entry.pdf_link, entry.zip_link, entry.other_link
-                ) for entry in contests_to_insert
+                    entry.subject,
+                    entry.level,
+                    entry.year,
+                    _compute_level_sort(entry.level),
+                    entry.pdf_link,
+                    entry.zip_link,
+                    entry.other_link
+                )
+                for entry in contests_to_insert
             ]
             c.executemany(
-                'INSERT INTO contests (subject, level, year, pdf_link, zip_link, other_link) VALUES (?, ?, ?, ?, ?, ?)',
+                'INSERT INTO contests (subject, level, year, level_sort, pdf_link, zip_link, other_link) VALUES (?, ?, ?, ?, ?, ?, ?)',
                 insert_data
             )
+
+            # ensure index for level_sort exists
+            try:
+                c.execute('CREATE INDEX IF NOT EXISTS idx_contests_subject_levelsort_year ON contests(subject, level_sort, year)')
+            except sqlite3.Error as e:
+                logger.warning(f"Could not create level_sort index (non-fatal): {e}")
             
         logger.info(f"Database repopulation completed successfully. Version: {version}")
         return len(contests_to_insert)

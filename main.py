@@ -124,8 +124,10 @@ def verify_info_db():
     global data_path, updated_info
     print()
     import setup.buildDB as buildDB
-    if updated_info or not (data_path / "info.db").exists():
+    # always build db (it is small enought to be fast)
+    if True or updated_info or not (data_path / "info.db").exists():
         buildDB.create_database(data_path / "info.json", data_path / "info.db", interactive=False)
+        print("OK info.db created")
     else:
         print("OK info.db exists")
 
