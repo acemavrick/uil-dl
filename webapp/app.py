@@ -18,7 +18,20 @@ from webapp.models import db, Contest
 from setup.buildDB import repopulate_database
 from setup.downloadInfo import UpdateResult, update_info_from_online
 from setup.mylogging import LOGGER as logger
-from main import data_path
+from webapp.analytics import send_event, analytics_enabled
+from config import data_path
+
+
+def _log_analytics(event_name, params=None):
+    """send analytics event and log response."""
+    try:
+        status, resp = send_event(event_name, params or {})
+        logger.info(f"analytics {event_name}: status={status}; response={resp}")
+        return status, resp
+    except Exception as e:
+        # be resilient to analytics errors
+        logger.error(f"analytics {event_name} failed: {e}")
+        return 0, str(e)
 
 
 def _resolve_download_path(path_str: str) -> Path:
@@ -282,13 +295,19 @@ def index():
                                cache_stats=cache_stats,
                                download_dir_absolute=DOWNLOADS_DIR.absolute(),
                                info_version=db_version,
-                               total_contest_count=db.session.query(Contest).count())
+                               total_contest_count=db.session.query(Contest).count(),
+                               analytics_enabled=analytics_enabled())
     except Exception as e:
         logger.error(f"Error in index route: {e}")
         # Get cache stats and database version even when there's an error
         cache_stats = download_cache.get_stats()
         db_version = get_database_version()
-        return render_template('index.html', error=str(e), contests=[], cache_stats=cache_stats, info_version=db_version)
+        return render_template('index.html', 
+                               error=str(e), 
+                               contests=[], 
+                               cache_stats=cache_stats, 
+                               info_version=db_version,
+                               analytics_enabled=analytics_enabled())
 
 @app.route('/refresh-info', methods=['POST'])
 def refresh_info():
@@ -309,14 +328,18 @@ def refresh_info():
             logger.info("Info refreshed successfully - new version downloaded.")
             # rebuild the database
             repopulate_database(info_json_path=data_path / "info.json", db_path=app.config['SQLALCHEMY_DATABASE_URI'].replace('sqlite:///', ''))
+            _log_analytics("info_refresh", {"result": "updated", "db_rebuilt": True})
             return "Info refreshed successfully - new version downloaded. Database rebuilt.", 200
         elif updated == UpdateResult.NOT_UPDATED:
             logger.info("Info refresh completed - no update needed.")
+            _log_analytics("info_refresh", {"result": "not_updated"})
             return "No update needed.", 200
         else:
+            _log_analytics("info_refresh", {"result": "error"})
             return "Failed to refresh info.", 500
     except Exception as e:
         logger.error(f"Failed to refresh info: {e}", exc_info=True)
+        _log_analytics("info_refresh", {"result": "exception", "error": str(e)[:200]})
         return f"Failed to refresh info: {str(e)}", 500
     finally:
         db_rebuild_lock.release()
@@ -364,6 +387,16 @@ def download_file(item_id, link_type):
             item.level, 
             item.year,
             link_type # use link_type in cache key
+        )
+        # analytics: record download trigger
+        _log_analytics(
+            "download_triggered",
+            {
+                "subject": item.subject,
+                "level": item.level,
+                "year": int(item.year),
+                "link_type": link_type,
+            }
         )
         
         # ---------- thread-safe & atomic download ----------
@@ -433,6 +466,7 @@ def refresh_cache():
     """Refresh the download cache."""
     logger.info("Refreshing download cache")
     count = download_cache.rebuild_cache()
+    _log_analytics("cache_refreshed", {"found_files": int(count), "cache_size": download_cache.get_stats()["total_size"]})
     
     # Return HTMX-friendly response for cache info update
     cache_stats = download_cache.get_stats()
@@ -449,6 +483,7 @@ def reset_cache():
     """Reset the download cache (forget all downloads)."""
     logger.info("Resetting download cache")
     count = download_cache.reset_cache()
+    _log_analytics("cache_reset", {"forgot_files": int(count)})
     
     # Return HTMX-friendly response for cache info update
     cache_stats = download_cache.get_stats()
@@ -580,6 +615,9 @@ def shutdown():
     """Shutdown the application."""
     import os
     import signal
+    
+    # analytics: record shutdown trigger
+    _log_analytics("shutdown_triggered_through_ui")
     
     # development server runs in a separate thread, so we need to kill the parent process
     pid = os.getpid()
@@ -809,6 +847,16 @@ def batch_download():
             if not contest_item:
                 results.append({"item_id": item_id, "link_type": link_type, "downloaded": False, "reason": "Contest not found"})
                 continue
+            # analytics: record download trigger (batch)
+            _log_analytics(
+                "download_triggered",
+                {
+                    "subject": contest_item.subject,
+                    "level": contest_item.level,
+                    "year": int(contest_item.year),
+                    "link_type": link_type,
+                }
+            )
             results.append(_perform_download(contest_item, link_type))
 
         # After downloads, return summary and updated cache stats
@@ -948,6 +996,9 @@ def set_download_path():
         download_cache = DownloadCache(DOWNLOADS_DIR)
         
         logger.info(f"Download directory changed from {old_dir} to {DOWNLOADS_DIR}")
+        # analytics: record path change without sending actual path
+        if old_dir != str(DOWNLOADS_DIR.absolute()):
+            _log_analytics("path_changed", {"changed": True})
         
         return jsonify({
             "success": True,

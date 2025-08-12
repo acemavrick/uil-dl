@@ -5,16 +5,16 @@ import setup.mylogging
 import webview
 import threading
 from pathlib import Path
-from platformdirs import user_data_path
 from time import sleep
 import os
+import webapp.analytics
 import webapp.splash
+from config import data_path
 
 # Global window reference
 window = None
 
 # get user directory
-data_path = user_data_path(appname="uil-dl", appauthor="acemavrick", ensure_exists=True)
 downloads_dir_path = None
 
 if not data_path.exists():
@@ -150,6 +150,8 @@ def initialization_and_app_logic(window):
     """
     try:
         print("Starting initialization...")
+        # init analytics here to avoid side-effects at import time
+        webapp.analytics.init(data_path)
         verify_config()
         verify_info_json()
         verify_info_db()
@@ -230,6 +232,8 @@ if __name__ == "__main__":
         print(f"An unexpected error occurred in the main thread: {e}")
         shutdown()
     finally:
+        # send analytics event
+        webapp.analytics.send_event("app_shutdown")
         portalocker.unlock(LOCK_FILE)
         LOCK_FILE.close()
         try:
