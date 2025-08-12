@@ -48,7 +48,12 @@ if CONFIG_FILE.exists():
     with open(CONFIG_FILE, 'r') as f:
         config_data = json.load(f)
 
-DOWNLOADS_DIR = _resolve_download_path(config_data.get('download_dir', config_data.get('default_download_dir', Path.home() / 'Downloads')))
+DOWNLOADS_DIR = _resolve_download_path(
+    config_data.get(
+        'download_dir',
+        config_data.get('default_download_dir', (Path.home() / 'Downloads' / 'uildl-downloads'))
+    )
+)
 DOWNLOADS_DIR.mkdir(parents=True, exist_ok=True)
 
 TEMP_DIR = Path(tempfile.gettempdir()) / 'uil-dl-downloads'

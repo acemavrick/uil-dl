@@ -35,7 +35,7 @@ def verify_config():
     global data_path, downloads_dir_path
     print()
     config_file = data_path / "config.cfg"
-    downloads_dir = Path.home() / "Downloads" / "uil-dl"
+    downloads_dir = Path.home() / "Downloads" / "uildl-downloads"
     config_data = {
         "default_download_dir": downloads_dir.as_posix(),
         "download_dir": downloads_dir.as_posix(),
