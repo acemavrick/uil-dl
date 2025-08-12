@@ -243,13 +243,13 @@ download_cache = DownloadCache()
 
 def format_filename(subject, level, year, link_type, extension):
     """Format filename: subject_year_level_linktype.extension"""
-    base_name = f"{subject.replace(' ', '_')}_{year}_{level.replace(' ', '_')}"
+    base_name = f"{subject.replace(' ', '-')}_{year}_{level.replace(' ', '-')}"
     # Use link_type to differentiate files for the same contest
     return f"{base_name}_{link_type}{extension}"
 
 def generate_cache_key(subject, level, year, link_type):
     """Generate a consistent cache key for a contest's file."""
-    base_key = f"{subject.replace(' ', '_')}_{year}_{level.replace(' ', '_')}"
+    base_key = f"{subject.replace(' ', '-')}_{year}_{level.replace(' ', '-')}"
     return f"{base_key}_{link_type}"
 
 @app.route('/splash')
