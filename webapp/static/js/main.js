@@ -1,8 +1,8 @@
-// UIL Downloads App - Minimal JavaScript (HTMX version)
+// minimal javascript for uil-dl 1.0.0-beta (htmx version)
 // Using Claude 3.7 Sonnet (Thinking)
 
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('UIL Downloads App initialized with HTMX');
+    console.log('uil-dl 1.0.0-beta initialized with htmx');
     
     // Initialize tag-based filter UI
     // initializeCheckboxFilters converts change events via built-in forms; tag UI removed so skip.

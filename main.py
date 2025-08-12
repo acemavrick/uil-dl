@@ -169,10 +169,10 @@ def initialization_and_app_logic(window):
         app_thread.start()
 
         print(f"""
-UIL-DL is now running.
-Access it through your browser at: http://127.0.0.1:{flask_port}
-Downloads directory: {downloads_dir_path.as_uri()}
-Log file: {(data_path / "uil-dl.log").as_uri()}
+uil-dl 1.0.0-beta is now running.
+access it through your browser at: http://127.0.0.1:{flask_port}
+downloads directory: {downloads_dir_path.as_uri()}
+log file: {(data_path / "uil-dl.log").as_uri()}
                 """)
 
         # wait for the app to start
@@ -204,12 +204,12 @@ if __name__ == "__main__":
         LOCK_FILE = LOCKFILEPATH.open("w")
         portalocker.lock(LOCK_FILE, portalocker.LOCK_EX | portalocker.LOCK_NB)
     except portalocker.LockException:
-        print("xx another instance of UIL-DL is running. exiting...")
+        print("xx another instance of uil-dl is running. exiting...")
         sys.exit(1)
 
     try:
         window = webview.create_window(
-            'uil-dl',
+            'UIL-DL 1.0 Beta',
             html=webapp.splash.SPLASH_HTML,
             width=1440,
             height=900,

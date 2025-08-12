@@ -13,7 +13,11 @@ def get_string_struct_value(key, text):
 
 company_name = get_string_struct_value('CompanyName', content)
 file_description = get_string_struct_value('FileDescription', content)
-product_version = get_string_struct_value('ProductVersion', content)
+# may include prerelease label like "-beta"
+product_version_raw = get_string_struct_value('ProductVersion', content)
+# keep raw for non-mac consumers; sanitize for macOS bundle fields
+product_version = product_version_raw
+product_version_numeric = re.match(r'\d+(?:\.\d+){0,2}', product_version_raw).group(0) if product_version_raw else '1.0.0'
 internal_name = get_string_struct_value('InternalName', content)
 legal_copyright = get_string_struct_value('LegalCopyright', content)
 product_name = get_string_struct_value('ProductName', content)
@@ -89,9 +93,10 @@ app = BUNDLE(
     info_plist={
         'CFBundleName': product_name,
         'CFBundleDisplayName': file_description,
-        'CFBundleVersion': product_version,
-        'CFBundleShortVersionString': '.'.join(product_version.split('.')[:2]),
+        # CFBundleVersion must be numeric-only; strip any prerelease labels
+        'CFBundleVersion': product_version_numeric,
+        'CFBundleShortVersionString': '.'.join(product_version_numeric.split('.')[:2]),
         'CFBundleIdentifier': f'dev.{company_name.lower()}.{internal_name}',
-        'NSHumanReadableCopyright': legal_copyright + ' https://github.com/acemavrick/uil-dl/blob/main/LICENSE',
+        'NSHumanReadableCopyright': legal_copyright,
     },
 )

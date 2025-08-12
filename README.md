@@ -1,10 +1,10 @@
-# UIL-DL
+# UIL-DL 1.0 Beta
 
 A tool enabling easy and bulk download of UIL Academics contest materials and data files.
 
 ## Overview
 
-UIL-DL (UIL Downloader) is a tool designed to simplify the process of downloading and managing UIL Academics contest materials.
+UIL-DL (UIL Downloader) 1.0 Beta is a tool designed to simplify the process of downloading and managing UIL Academics contest materials.
 It provides a clean, intuitive interface for filtering and accessing contest files, with features like caching to optimize bandwidth usage and download speed.
 
 ## Features

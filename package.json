@@ -1,6 +1,6 @@
 {
   "name": "uil-dl",
-  "version": "1.0.0",
+  "version": "1.0.0-beta",
   "description": "A tool enabling easy and bulk download of UIL Academics contest materials and data files.",
   "homepage": "https://github.com/acemavrick/uil-dl#readme",
   "bugs": {
