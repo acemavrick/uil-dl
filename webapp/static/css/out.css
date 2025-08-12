@@ -26,15 +26,15 @@
     --color-green-500: oklch(72.3% 0.219 149.579);
     --color-green-600: oklch(62.7% 0.194 149.214);
     --color-green-800: oklch(44.8% 0.119 151.328);
-    --color-emerald-50: oklch(97.9% 0.021 166.113);
-    --color-emerald-100: oklch(95% 0.052 163.051);
-    --color-emerald-300: oklch(84.5% 0.143 164.978);
-    --color-emerald-400: oklch(76.5% 0.177 163.223);
-    --color-emerald-500: oklch(69.6% 0.17 162.48);
-    --color-emerald-600: oklch(59.6% 0.145 163.225);
-    --color-emerald-700: oklch(50.8% 0.118 165.612);
-    --color-emerald-800: oklch(43.2% 0.095 166.913);
-    --color-emerald-900: oklch(37.8% 0.077 168.94);
+    --color-emerald-50: oklch(0.98 0.02 166);
+    --color-emerald-100: oklch(0.96 0.04 166);
+    --color-emerald-300: oklch(0.84 0.11 166);
+    --color-emerald-400: oklch(0.78 0.14 166);
+    --color-emerald-500: oklch(0.72 0.15 166);
+    --color-emerald-600: oklch(0.66 0.14 166);
+    --color-emerald-700: oklch(0.58 0.12 166);
+    --color-emerald-800: oklch(0.51 0.10 166);
+    --color-emerald-900: oklch(0.44 0.08 166);
     --color-blue-50: oklch(97% 0.014 254.604);
     --color-blue-100: oklch(93.2% 0.032 255.585);
     --color-blue-200: oklch(88.2% 0.059 254.128);
@@ -1004,7 +1004,7 @@ input[type="checkbox"] {
 tbody tr:hover {
   background-color: var(--color-emerald-50);
   @media (prefers-color-scheme: dark) {
-    background-color: color-mix(in srgb, oklch(37.8% 0.077 168.94) 10%, transparent);
+    background-color: color-mix(in srgb, oklch(0.44 0.08 166) 10%, transparent);
     @supports (color: color-mix(in lab, red, red)) {
       background-color: color-mix(in oklab, var(--color-emerald-900) 10%, transparent);
     }
@@ -1025,7 +1025,7 @@ tbody tr:hover {
   background-color: var(--color-emerald-100);
   color: var(--color-emerald-800);
   @media (prefers-color-scheme: dark) {
-    background-color: color-mix(in srgb, oklch(37.8% 0.077 168.94) 30%, transparent);
+    background-color: color-mix(in srgb, oklch(0.44 0.08 166) 30%, transparent);
     @supports (color: color-mix(in lab, red, red)) {
       background-color: color-mix(in oklab, var(--color-emerald-900) 30%, transparent);
     }

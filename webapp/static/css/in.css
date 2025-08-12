@@ -1,5 +1,19 @@
 @import "tailwindcss";
 
+@theme {
+  /* emerald scale in OKLCH */
+  --color-emerald-50: oklch(0.98 0.02 166);
+  --color-emerald-100: oklch(0.96 0.04 166);
+  --color-emerald-200: oklch(0.90 0.07 166);
+  --color-emerald-300: oklch(0.84 0.11 166);
+  --color-emerald-400: oklch(0.78 0.14 166);
+  --color-emerald-500: oklch(0.72 0.15 166);
+  --color-emerald-600: oklch(0.66 0.14 166);
+  --color-emerald-700: oklch(0.58 0.12 166);
+  --color-emerald-800: oklch(0.51 0.10 166);
+  --color-emerald-900: oklch(0.44 0.08 166);
+}
+
 /* Custom styles for UIL Downloads app */
 /* Stats container styling */
 .stats-container {
