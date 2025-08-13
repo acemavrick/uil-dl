@@ -7,11 +7,24 @@ dotenv.load_dotenv()
 relay_url = os.environ.get("GA4_RELAY_URL")
 CID = None
 SID = None
-CONSENT = False
+CONSENT = True
 MT = True
 
+def analytics_enabled_verbose():
+    if not CONSENT:
+        return False, "no consent"
+    if not relay_url:
+        return False, "no relay url"
+    if not CID:
+        return False, "no cid"
+    if not SID:
+        return False, "no sid"
+    if not MT:
+        return False, "no mt"
+    return True, None
+
 def analytics_enabled():
-    return CONSENT and bool(relay_url) and bool(CID) and bool(SID) and MT
+    return analytics_enabled_verbose()[0]
 
 def init(appdir):
     global CID, SID, CONSENT
@@ -33,8 +46,9 @@ def init(appdir):
     send_event("app_startup", {"app_version": os.environ.get("APP_VERSION")})
 
 def send_event(name, params=None):
-    if not analytics_enabled():
-        return 0, "analytics_disabled"
+    enabled, reason = analytics_enabled_verbose()
+    if not enabled:
+        return 0, f"analytics_disabled: {reason}"
     
     if not isinstance(name, str) or not name:
         return 400, "invalid_event_name"
@@ -69,3 +83,13 @@ def send_event(name, params=None):
     except Exception as e:
         # couldn't parse response, return raw text
         return resp.status_code, resp.text
+
+def test():
+    global CID, SID, CONSENT
+    # CID = str(uuid.uuid4())
+    SID = int(time.time())
+    print(CID, SID, CONSENT)
+    print(send_event("test_event", {"test_param": "test_value"}))
+
+if __name__ == "__main__":
+    test()
