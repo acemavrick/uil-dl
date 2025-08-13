@@ -46,7 +46,6 @@ def send_event(name, params=None):
     event_params["engagement_time_msec"] = 10
     event_params["app_version"] = os.environ.get("APP_VERSION")
     event_params["os"] = platform()
-    event_params["debug_mode"] = 1
 
     body = {
         "client_id": CID,
