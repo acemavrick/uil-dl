@@ -1,7 +1,8 @@
-from platform import platform
-import os, time, uuid, json, dotenv
+import sys, platform, os, time, uuid, dotenv
 from pathlib import Path
 import requests
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 dotenv.load_dotenv()
 relay_url = os.environ.get("GA4_RELAY_URL")
@@ -45,6 +46,31 @@ def init(appdir):
     SID = int(time.time())
     send_event("app_startup", {"app_version": os.environ.get("APP_VERSION")})
 
+def ga4_detailed_device_info():
+    system = platform.system()
+    release = platform.release()
+    version = platform.version()
+    platplat = platform.platform()
+    machine = platform.machine()
+    processor = platform.processor()
+    architecture = platform.architecture()
+    name = os.name
+    sys_platform = sys.platform
+
+    
+    return {
+        "system": system,
+        "release": release,
+        "version": version,
+        "platform": platplat,
+        "machine": machine,
+        "processor": processor,
+        "architecture": ":".join(architecture),
+        "os_name": name,
+        "sys_platform": sys_platform
+    }
+
+
 def send_event(name, params=None):
     enabled, reason = analytics_enabled_verbose()
     if not enabled:
@@ -59,7 +85,8 @@ def send_event(name, params=None):
     event_params["session_id"] = SID
     event_params["engagement_time_msec"] = 10
     event_params["app_version"] = os.environ.get("APP_VERSION")
-    event_params["os"] = platform()
+    deviceInfo = ga4_detailed_device_info()
+    event_params.update(deviceInfo)
 
     body = {
         "client_id": CID,
@@ -89,7 +116,7 @@ def test():
     # CID = str(uuid.uuid4())
     SID = int(time.time())
     print(CID, SID, CONSENT)
-    print(send_event("test_event", {"test_param": "test_value"}))
+    print(send_event("test_event", {"test_param": "test_value", "debug_mode": 1}))
 
 if __name__ == "__main__":
     test()

@@ -10,6 +10,7 @@ import os
 import webapp.analytics
 import webapp.splash
 from config import data_path
+import time
 
 # Global window reference
 window = None
@@ -232,8 +233,6 @@ if __name__ == "__main__":
         print(f"An unexpected error occurred in the main thread: {e}")
         shutdown()
     finally:
-        # send analytics event
-        webapp.analytics.send_event("app_shutdown")
         portalocker.unlock(LOCK_FILE)
         LOCK_FILE.close()
         try:
