@@ -1,27 +1,35 @@
-import sys, platform, os, time, uuid, dotenv
+import sys, platform, os, time, uuid
 from pathlib import Path
 import requests
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-dotenv.load_dotenv()
-relay_url = os.environ.get("GA4_RELAY_URL")
+
+relay_url = None
+app_version = None
 CID = None
 SID = None
 CONSENT = True
 MT = True
+
+try:
+    from . import a_c
+    relay_url = a_c.GA4_RELAY_URL
+    app_version = a_c.APP_VERSION
+except Exception as e:
+    print(f"Error importing webapp.a_c: {e}")
 
 def analytics_enabled_verbose():
     if not CONSENT:
         return False, "no consent"
     if not relay_url:
         return False, "no relay url"
+    if not MT:
+        return False, "manually disabled"
     if not CID:
         return False, "no cid"
     if not SID:
         return False, "no sid"
-    if not MT:
-        return False, "no mt"
     return True, None
 
 def analytics_enabled():
@@ -84,7 +92,7 @@ def send_event(name, params=None):
     # set basic params
     event_params["session_id"] = SID
     event_params["engagement_time_msec"] = 10
-    event_params["app_version"] = os.environ.get("APP_VERSION")
+    event_params["app_version"] = app_version
     deviceInfo = ga4_detailed_device_info()
     event_params.update(deviceInfo)
 
@@ -119,4 +127,5 @@ def test():
     print(send_event("test_event", {"test_param": "test_value", "debug_mode": 1}))
 
 if __name__ == "__main__":
-    test()
+    # test()
+    print(analytics_enabled_verbose())

@@ -151,8 +151,6 @@ def initialization_and_app_logic(window):
     """
     try:
         print("Starting initialization...")
-        # init analytics here to avoid side-effects at import time
-        webapp.analytics.init(data_path)
         verify_config()
         verify_info_json()
         verify_info_db()
@@ -211,6 +209,9 @@ if __name__ == "__main__":
         sys.exit(1)
 
     try:
+        # init analytics here to avoid side-effects at import time
+        webapp.analytics.init(data_path)
+
         window = webview.create_window(
             'UIL-DL 1.0 Beta',
             html=webapp.splash.SPLASH_HTML,
