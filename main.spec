@@ -1,27 +1,4 @@
 # -*- mode: python ; coding: utf-8 -*-
-import re
-
-version_file = 'assets/version.txt'
-with open(version_file, 'r') as f:
-    content = f.read()
-
-def get_string_struct_value(key, text):
-    match = re.search(r"StringStruct\('" + key + r"', u?'(.*?)'\)", text)
-    if match:
-        return match.group(1)
-    return None
-
-company_name = get_string_struct_value('CompanyName', content)
-file_description = get_string_struct_value('FileDescription', content)
-# may include prerelease label like "-beta"
-product_version_raw = get_string_struct_value('ProductVersion', content)
-# keep raw for non-mac consumers; sanitize for macOS bundle fields
-product_version = product_version_raw
-product_version_numeric = re.match(r'\d+(?:\.\d+){0,2}', product_version_raw).group(0) if product_version_raw else '1.0.0'
-internal_name = get_string_struct_value('InternalName', content)
-legal_copyright = get_string_struct_value('LegalCopyright', content)
-product_name = get_string_struct_value('ProductName', content)
-
 
 a = Analysis(
     ['main.py'],
@@ -74,7 +51,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    version=version_file,
+    version='version.txt',
 )
 coll = COLLECT(
     exe,
@@ -89,14 +66,13 @@ app = BUNDLE(
     coll,
     name='uil-dl.app',
     icon='assets/icon.png',
-    bundle_identifier=f'dev.{company_name.lower()}.{internal_name}',
+    bundle_identifier='dev.acemavrick.uil-dl',
     info_plist={
-        'CFBundleName': product_name,
-        'CFBundleDisplayName': file_description,
-        # CFBundleVersion must be numeric-only; strip any prerelease labels
-        'CFBundleVersion': product_version_numeric,
-        'CFBundleShortVersionString': '.'.join(product_version_numeric.split('.')[:2]),
-        'CFBundleIdentifier': f'dev.{company_name.lower()}.{internal_name}',
-        'NSHumanReadableCopyright': legal_copyright,
+        'CFBundleName': 'UIL-DL',
+        'CFBundleDisplayName': 'UIL-DL',
+        'CFBundleVersion': '1.0.0-beta',
+        'CFBundleShortVersionString': '1.0.0-beta',
+        'CFBundleIdentifier': f'dev.acemavrick.uil-dl',
+        'NSHumanReadableCopyright': 'Copyright © 2025 acemavrick. Licensed under the MIT License. See github.com/acemavrick/uil-dl',
     },
 )

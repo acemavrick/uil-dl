@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>UIL-DL 1.0 Beta</title>
+
     <script src="{{ url_for('static', filename='js/htmx.min.js') }}"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/out.css') }}">
 </head>
@@ -181,6 +182,12 @@
                                 <a href="https://github.com/acemavrick/uil-dl/blob/standalone/README.md" target="_blank" rel="noopener noreferrer" class="text-emerald-700 dark:text-emerald-300 hover:underline">README</a>
                                 on GitHub.
                             </p>
+                            {% if analytics_enabled %}
+                            <br>
+                            <p class="text-sm text-blue-600 dark:text-blue-300">
+                                Analytics are enabled. Read more about it in the <a href="https://github.com/acemavrick/uil-dl/blob/standalone/README.md#analytics" target="_blank" rel="noopener noreferrer" class="text-blue-700 dark:text-blue-300 hover:underline">README</a>.
+                            </p>
+                            {% endif %}
                         </div>
                     </div>
                 </div>

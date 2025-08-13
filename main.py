@@ -5,16 +5,17 @@ import setup.mylogging
 import webview
 import threading
 from pathlib import Path
-from platformdirs import user_data_path
 from time import sleep
 import os
+import webapp.analytics
 import webapp.splash
+from config import data_path
+import time
 
 # Global window reference
 window = None
 
 # get user directory
-data_path = user_data_path(appname="uil-dl", appauthor="acemavrick", ensure_exists=True)
 downloads_dir_path = None
 
 if not data_path.exists():
@@ -208,6 +209,9 @@ if __name__ == "__main__":
         sys.exit(1)
 
     try:
+        # init analytics here to avoid side-effects at import time
+        webapp.analytics.init(data_path)
+
         window = webview.create_window(
             'UIL-DL 1.0 Beta',
             html=webapp.splash.SPLASH_HTML,

@@ -15,6 +15,7 @@ This branch is the source code of the standalone/app version. For the dev versio
     - [Filtering \& Sorting](#filtering--sorting)
     - [The Cache](#the-cache)
     - [Settings](#settings)
+  - [Analytics](#analytics)
   - [Contact](#contact)
   - [Contributing](#contributing)
 
@@ -100,6 +101,12 @@ On the top left, there is a panel displaying information and useful settings.
 The `info.json` is a file the tool uses to track what contests are available through UIL's website. The only way it can/will be updated for the *standalone* app will be through the "Refresh Info" button (and on startup). The actual file is located on the dev branch of this product and can only be updated manually.
 
 If you find that the downloads offered by the tool do not match the website, please [contact me](#contact) promptly.
+
+## Analytics
+
+Basic, anonymous analytics data is collected by default to help improve the application and understand feature usage patterns. The analytics are limited to functional events (like downloads and searches) and never include personal information or file contents. All analytics events are processed in `app.py` and can be viewed in the code.
+
+To disable analytics, go to the application support directory and delete the `ga4_csnt`. Do not delete the `ga4_cid` file; deleting that will cause analytics to be re-enabled.
 
 ## Contact
 
