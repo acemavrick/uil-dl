@@ -73,15 +73,14 @@ TEMP_DIR = Path(tempfile.gettempdir()) / 'uil-dl-downloads'
 TEMP_DIR.mkdir(parents=True, exist_ok=True)
 
 # Create Flask app
-if getattr(sys, 'frozen', False):
-    # if the application is run as a bundle, the PyInstaller bootloader
-    # extends the sys module by a flag frozen=True and sets the app 
-    # path into variable _MEIPASS
-    root_path = sys._MEIPASS
-    app = Flask(__name__, template_folder=os.path.join(root_path, 'templates'), static_folder=os.path.join(root_path, 'static'))
-else:
-    root_path = Path(__file__).parent
-    app = Flask(__name__, template_folder=root_path / "templates", static_folder=root_path / "static")
+# resolve template/static relative to this module's directory so it works
+# in source, Nuitka standalone, and Nuitka onefile after extraction
+root_path = Path(__file__).parent
+app = Flask(
+    __name__,
+    template_folder=root_path / "templates",
+    static_folder=root_path / "static",
+)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{os.path.abspath(data_path / "info.db")}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
