@@ -14,11 +14,16 @@
   "author": "acemavrick",
   "type": "commonjs",
   "scripts": {
-    "buildcss": "tailwindcss -i ./webapp/static/css/in.css -o ./webapp/static/css/out.css"
+    "buildcss": "tailwindcss -i ./in.css -o ./out.css",
+    "serve": "npx http-server .",
+    "start": "npm run buildcss && npm run serve"
   },
   "dependencies": {
     "@tailwindcss/cli": "^4.1.8",
     "htmx.org": "^2.0.4",
     "tailwindcss": "^4.1.8"
+  },
+  "devDependencies": {
+    "@tailwindcss/typography": "^0.5.16"
   }
 }
