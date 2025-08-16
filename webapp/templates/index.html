@@ -175,19 +175,27 @@
                                 for support, feedback, and updates.
                             </p>
                             <p>
-                                <a href="https://github.com/acemavrick/uil-dl/tree/standalone" target="_blank" rel="noopener noreferrer" class="text-emerald-700 dark:text-emerald-300 hover:underline">Source on GitHub</a>
-                            </p>
-                            <p>
                                 For more information (such as usage details), see the 
                                 <a href="https://github.com/acemavrick/uil-dl/blob/standalone/README.md" target="_blank" rel="noopener noreferrer" class="text-emerald-700 dark:text-emerald-300 hover:underline">README</a>
                                 on GitHub.
                             </p>
-                            {% if analytics_enabled %}
-                            <br>
-                            <p class="text-sm text-blue-600 dark:text-blue-300">
-                                Analytics are enabled. Read more about it in the <a href="https://github.com/acemavrick/uil-dl/blob/standalone/README.md#analytics" target="_blank" rel="noopener noreferrer" class="text-blue-700 dark:text-blue-300 hover:underline">README</a>.
+                            <p>
+                                <a href="https://github.com/acemavrick/uil-dl/tree/standalone" target="_blank" rel="noopener noreferrer" class="text-emerald-700 dark:text-emerald-300 hover:underline">Source on GitHub</a>
                             </p>
-                            {% endif %}
+                            <br>
+                            <p class="text-sm">
+                                Analytics are 
+                                <span class="font-bold {% if analytics_enabled %}
+                                text-blue-600 dark:text-blue-300
+                                {% else %}
+                                text-orange-600 dark:text-orange-300
+                                {% endif %}">
+                                    {% if analytics_enabled %}enabled{% else %}disabled{% endif %}
+                                </span>. 
+                                <br>
+                                Read more about it in the 
+                                <a href="https://github.com/acemavrick/uil-dl/blob/standalone/README.md#analytics" target="_blank" rel="noopener noreferrer" class="text-emerald-700 dark:text-emerald-300 hover:underline">README</a>.
+                            </p>
                         </div>
                     </div>
                 </div>
