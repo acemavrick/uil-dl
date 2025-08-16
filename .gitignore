@@ -399,3 +399,5 @@ tailwind.config.js
 *.ai
 
 webapp/a_c.py
+
+release/
