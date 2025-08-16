@@ -1,4 +1,5 @@
 import os
+import shutil
 import sys
 import subprocess
 from pathlib import Path
@@ -86,26 +87,27 @@ def build_with_nuitka():
     file_description = "UIL-DL"
     copyright_text = "Copyright © 2025 acemavrick. Licensed under the MIT License."
     
-    # remove macOS detritus that breaks codesign (e.g., .DS_Store, AppleDouble)
     try:
-        for root in [Path("webapp"), Path("assets"), Path("Resources")]:
-            if root.exists():
-                for f in root.rglob(".DS_Store"):
-                    try:
-                        f.unlink()
-                    except Exception:
-                        pass
-                for f in root.rglob("._*"):
-                    try:
-                        f.unlink()
-                    except Exception:
-                        pass
-        # clear extended attributes recursively if xattr is available
+        # remove existing build and dist directories if they exist
+        if Path("build").exists():
+            a = input("remove build directory? (y/n) ")
+            if "y" in a.lower():
+                shutil.rmtree("build")
+        
+        if Path("dist").exists():
+            a = input("remove dist directory? (y/n) ")
+            if "y" in a.lower():
+                shutil.rmtree("dist")
+    except Exception:
+        pass
+
+    try:
+        # if on macos
         if sys.platform == "darwin":
-            try:
-                subprocess.run(["xattr", "-cr", "."], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            except FileNotFoundError:
-                pass
+            # strip usign xattr and dotfiles
+            subprocess.run(["xattr", "-cr", "."], check=True)
+            # remove dotfiles
+            subprocess.run(["dot_clean", "."], check=True)
     except Exception:
         pass
 
@@ -113,7 +115,7 @@ def build_with_nuitka():
     ico_path, icns_path = _ensure_icons_from_png(Path("assets/icon.png"))
 
     # optional
-    use_onefile = True
+    use_onefile = False
 
     # optional
     compile_all_imports = True
@@ -139,19 +141,18 @@ def build_with_nuitka():
         "--include-data-dir=webapp/static=webapp/static",
 
         # performance optimizations
+        "--plugin-enable=multiprocessing",
+        # "--plugin-enable=anti-bloat",
         "--lto=yes",  # link-time optimization
         f"--jobs={jobs_value}",  # parallel C/C++ compilation
         "--assume-yes-for-downloads",
         "--python-flag=no_docstrings",
 
-        # avoid including macOS metadata files that break codesigning
-        "--noinclude-data-files=**/.DS_Store",
-        "--noinclude-data-files=**/._*",
-        "--noinclude-data-files=**/__pycache__/**",
-        "--noinclude-data-files=**/*.pyc",
-        "--noinclude-data-files=**/.git/**",
+        "--nofollow-import-to=nuitka_build",  # exclude this build script from the executable
+        "--nofollow-import-to=nuitka",  # exclude Nuitka from the executable
 
-        "--verbose",
+        
+        # "--verbose",
     ]
 
     if compile_all_imports:
@@ -165,8 +166,9 @@ def build_with_nuitka():
             f"--windows-file-description={file_description}",
             f"--windows-file-version={version}",
             f"--windows-product-version={version}",
-            f"--windows-copyright={copyright_text}",
+            # f"--windows-copyright={copyright_text}",
             "--msvc=latest",
+            "--windows-console-mode=disable",
         ])
         
         # add icon
@@ -185,19 +187,19 @@ def build_with_nuitka():
             "--macos-create-app-bundle",
             f"--macos-app-name={product_name}",
             f"--macos-app-version={version}",
-            "--clang",
+            # "--clang",
         ])
 
         # add icon (.icns required for macOS)
-        # prefer auto-generated icon; fall back to Resources/Icons.icns
+        # Prefer auto-generated icon; fall back to Resources/Icons.icns
         mac_icns = icns_path if icns_path else Path("Resources/Icons.icns")
         if mac_icns.exists():
             cmd.append(f"--macos-app-icon={mac_icns.as_posix()}")
 
-        # macOS onefile can complicate app bundle behavior; keep standalone by default
-        if use_onefile:
-            cmd.append("--onefile")
-            cmd.append("--onefile-tempdir-spec={CACHE_DIR}/uil-dl")
+        # macOS onefile can complicate app bundle behavior; keep standalone by default.
+        # if use_onefile:
+            # cmd.append("--onefile")
+            # cmd.append("--onefile-tempdir-spec={CACHE_DIR}/uil-dl")
     
     # Add the main script
     cmd.append("main.py")
@@ -267,4 +269,19 @@ def build_with_nuitka():
 
 if __name__ == "__main__":
     success = build_with_nuitka()
+    if success:
+        print("build successful! app is in dist/")
+        if sys.platform == "darwin":
+            # chmod?
+            # check if uil-dl exists in the app bundle
+            uil_dl_path = Path("dist/uil-dl.app/Contents/MacOS/main")
+            if uil_dl_path.exists():
+                print("Making executable...")
+                subprocess.run(["chmod", "+x", str(uil_dl_path)], check=True)
+                print("Executable permissions set")
+            else:
+                print("uil-dl not found in app bundle")
+            pass
+    else:
+        print("build failed! app is not in dist/")
     sys.exit(0 if success else 1)
