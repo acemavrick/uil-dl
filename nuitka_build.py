@@ -82,6 +82,7 @@ def build_with_nuitka():
     """
     
     version = "1.0.0-beta"
+    version_numeric = "1.0.0.1" # for windows; the last number indicates the beta version (1-indexed)
     company = "acemavrick"
     product_name = "UIL-DL"
     file_description = "UIL-DL"
@@ -150,6 +151,7 @@ def build_with_nuitka():
 
         "--nofollow-import-to=nuitka_build",  # exclude this build script from the executable
         "--nofollow-import-to=nuitka",  # exclude Nuitka from the executable
+        "--nofollow-import-to=sqlalchemy.dialects.mysql,sqlalchemy.dialects.postgresql,sqlalchemy.dialects.oracle",
 
         
         # "--verbose",
@@ -164,8 +166,8 @@ def build_with_nuitka():
             f"--windows-company-name={company}",
             f"--windows-product-name={product_name}",
             f"--windows-file-description={file_description}",
-            f"--windows-file-version={version}",
-            f"--windows-product-version={version}",
+            f"--windows-file-version={version_numeric}",
+            f"--windows-product-version={version_numeric}",
             # f"--windows-copyright={copyright_text}",
             "--msvc=latest",
             "--windows-console-mode=disable",

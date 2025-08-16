@@ -23,7 +23,6 @@ json5==0.12.1
 macholib==1.16.3
 MarkupSafe==3.0.2
 Nuitka==2.7.12
-numpy==2.3.2
 ordered-set==4.1.0
 packaging==25.0
 pathspec==0.12.1
@@ -31,15 +30,11 @@ pillow==11.3.0
 platformdirs==4.3.8
 portalocker==3.2.0
 proxy_tools==0.1.0
-PyQt6==6.9.1
-PyQt6-Qt6==6.9.1
-PyQt6_sip==13.10.2
 python-dotenv==1.1.1
 python-engineio==4.12.2
 python-socketio==5.13.0
 pywebview==5.4
 PyYAML==6.0.2
-QtPy==2.4.3
 regex==2025.7.34
 requests==2.32.4
 selectolax==0.3.32
