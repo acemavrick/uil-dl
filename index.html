@@ -26,20 +26,16 @@
                 <img src="assets/icon-192.png" alt="UIL-DL" class="h-8 w-8 rounded-md">
                 <span class="text-slate-100">UIL-DL</span>
             </a>
-            <ul class="hidden sm:flex gap-6 text-sm text-slate-300">
-                <li><a class="hover:text-white" href="#overview">Overview</a></li>
-                <li><a class="hover:text-white" href="#features">Features</a></li>
-                <li><a class="hover:text-white" href="#installation">Install</a></li>
-                <li><a class="hover:text-white" href="#usage">Usage</a></li>
-                <li><a class="hover:text-white" href="#analytics">Analytics</a></li>
-                <li><a class="hover:text-white" href="#contact">Contact</a></li>
-            </ul>
-            <a href="https://github.com/acemavrick/uil-dl/releases" class="inline-flex items-center gap-2 rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400">Download</a>
+            <div class="flex items-center gap-3">
+                <a href="https://discord.gg/a6DdBaebPk" class="inline-flex items-center gap-2 rounded-md bg-slate-800 px-3 py-2 text-sm font-semibold text-white ring-1 ring-inset ring-slate-700 hover:bg-slate-700">Join the Discord</a>
+                <a href="https://github.com/acemavrick/uil-dl/blob/standalone/README.md" class="inline-flex items-center gap-2 rounded-md bg-slate-900 px-3 py-2 text-sm font-semibold text-white ring-1 ring-inset ring-slate-800 hover:bg-slate-800">Read the README</a>
+                <a href="https://github.com/acemavrick/uil-dl/releases" class="inline-flex items-center gap-2 rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow hover:bg-red-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400">Download</a>
+            </div>
         </nav>
     </header>
 
     <!-- hero -->
-    <section class="relative overflow-hidden border-b border-slate-800">
+    <section class="relative overflow-hidden">
         <div class="absolute inset-0 bg-gradient-to-b from-slate-900 via-slate-950 to-slate-950"></div>
         <div class="relative mx-auto max-w-6xl px-4 py-16 lg:py-24">
             <div class="grid items-center gap-10 lg:grid-cols-2">
@@ -48,82 +44,76 @@
                     <p class="mt-4 text-lg text-slate-300">UIL-DL streamlines finding, filtering, and downloading contest packets with batch downloads, smart caching, and a responsive UI.</p>
                     <div class="mt-6 flex flex-wrap items-center gap-3">
                         <a href="https://github.com/acemavrick/uil-dl/releases" class="inline-flex items-center gap-2 rounded-md bg-red-600 px-4 py-2.5 text-base font-semibold text-white shadow hover:bg-red-500">Get the app</a>
-                        <a href="#features" class="inline-flex items-center gap-2 rounded-md bg-slate-800 px-4 py-2.5 text-base font-semibold text-white ring-1 ring-inset ring-slate-700 hover:bg-slate-700">Learn more</a>
+                        <a href="https://discord.gg/a6DdBaebPk" class="inline-flex items-center gap-2 rounded-md bg-slate-800 px-4 py-2.5 text-base font-semibold text-white ring-1 ring-inset ring-slate-700 hover:bg-slate-700">Join the Discord</a>
+                        <a href="https://github.com/acemavrick/uil-dl/blob/standalone/README.md" class="inline-flex items-center gap-2 rounded-md bg-slate-900 px-4 py-2.5 text-base font-semibold text-white ring-1 ring-inset ring-slate-800 hover:bg-slate-800">Read the README</a>
                     </div>
                 </div>
                 <div class="hidden justify-end lg:flex">
-                    <img src="assets/icon-256.png" alt="UIL-DL icon" class="h-40 w-40 rounded-2xl shadow-lg ring-1 ring-slate-800">
+                    <img src="assets/icon-512.png" alt="UIL-DL icon" class="h-56 w-56 rounded-2xl shadow-lg">
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- main content from README -->
-    <main class="mx-auto max-w-3xl px-4 py-12">
-        <article class="prose prose-invert lg:prose-xl">
-            <h2 id="overview">Overview</h2>
-            <p>UIL-DL (UIL Downloader) is a tool designed to simplify the process of downloading and managing UIL Academics contest materials. It provides a clean, intuitive interface for filtering and accessing contest files, with features like caching to optimize bandwidth usage and download speed.</p>
+    <!-- feature: homepage screenshot -->
+    <section class="mx-auto max-w-6xl px-4 pt-12">
+        <div class="rounded-2xl bg-slate-900/40 ring-1 ring-inset ring-slate-800 p-3">
+            <img src="assets/light_mode_homepage.png" alt="UIL-DL app homepage screenshot" class="w-full rounded-xl shadow-2xl">
+        </div>
+    </section>
 
-            <h3 id="features">Features</h3>
+    <!-- product story -->
+    <main class="mx-auto max-w-6xl px-4 py-16">
+        <article class="prose prose-invert lg:prose-xl max-w-none">
+            <h2>Why UIL-DL</h2>
+            <p>UIL-DL removes the repetitive work of hunting down contest packets. Search once, select what you need, and download everything in one go. A lightweight cache keeps what you already grabbed so repeat downloads are instant and bandwidth‑friendly.</p>
+
+            <h3>What you can do</h3>
             <ul>
-                <li><strong>Search and Filter</strong>: easily find contests by subject, level, and year</li>
-                <li><strong>Smart Caching</strong>: downloaded files are cached locally to avoid redundant downloads</li>
-                <li><strong>Concurrent Downloads</strong>: efficiently manage multiple downloads</li>
-                <li><strong>Responsive UI</strong>: clean and easy to use interface</li>
+                <li>Filter by subject, contest level, and year with fast column sorting.</li>
+                <li>Batch download PDFs and data files with a single click.</li>
+                <li>Use clear file names that play nicely with shared drives and grading workflows.</li>
             </ul>
 
-            <h3 id="installation">Installation</h3>
-            <p>You can find the latest versions and instructions for macOS and Windows in the <a href="https://github.com/acemavrick/uil-dl/releases">releases</a> section. If you prefer building from source, check out the <a href="https://github.com/acemavrick/uil-dl/tree/main">dev branch</a>.</p>
-
-            <h3 id="usage">Usage</h3>
-            <h4>Downloading Materials</h4>
+            <h3>How it works</h3>
             <ol>
-                <li>Use the checkboxes to mark which files you want downloaded.</li>
-                <li>Click “Download Selected” to start downloading all the selected files.</li>
+                <li>Refresh Info loads the latest catalog maintained for UIL materials.</li>
+                <li>Pick files, then start the batch—UIL-DL handles concurrency for you.</li>
+                <li>A local manifest (<code>.cache_manifest.json</code>) tracks what you already have; you can safely refresh or reset it without touching your files.</li>
             </ol>
-            <p>Files are saved to your chosen directory and named like <code>{Contest}_{Year}_{Level}_{filetype}</code>, with spaces replaced by hyphens (e.g. <code>Calculator-Applications_2025_District_pdf.pdf</code>). Quitting the app stops in‑progress downloads.</p>
 
-            <h4>File Types</h4>
-            <ul>
-                <li>PDF Packets: packets of the contests, often including the answer key.</li>
-                <li>ZIP Data Files: contest data (e.g., programming), may include answer keys.</li>
-                <li>Other Files: links to files not downloadable by this tool (e.g., Box files).</li>
-            </ul>
-            <p>All files are sourced directly from the official UIL <a href="https://www.uiltexas.org/academics/resources/study-materials">study materials</a> page.</p>
+            <h3>Privacy</h3>
+            <p>Only anonymous, functional events are measured to improve the app. Delete the <code>ga4_csnt</code> token to opt out at any time.</p>
 
-            <h4>Filtering &amp; Sorting</h4>
-            <p>Filter using the left panel and sort by clicking column headers. Levels follow contest order (Study Packet → Invitational A → Invitational B → District → Region → State).</p>
-
-            <h4>The Cache</h4>
-            <ul>
-                <li><strong>Location</strong>: files are stored in your downloads directory</li>
-                <li><strong>Manifest</strong>: <code>.cache_manifest.json</code> tracks size and timestamps</li>
-                <li><strong>Operations</strong>: Refresh Cache updates the index; Reset Cache clears the index without deleting files</li>
-            </ul>
-
-            <h3 id="analytics">Analytics</h3>
-            <p>Basic, anonymous analytics help improve the application. Events are functional (downloads, searches) and never include personal data. To disable analytics, delete the <code>ga4_csnt</code> file in the application support directory.</p>
-
-            <h3 id="contact">Contact</h3>
-            <ul>
-                <li><a href="https://github.com/acemavrick/uil-dl/issues">GitHub Issues</a>: bug reports and feature requests</li>
-                <li><a href="https://discord.gg/a6DdBaebPk">Discord server</a> for community support and updates</li>
-                <li>For personal inquiries, see the author’s <a href="https://github.com/acemavrick">GitHub profile</a>.</li>
-            </ul>
+            <p>
+                <a href="https://github.com/acemavrick/uil-dl/blob/standalone/README.md" class="inline-flex items-center gap-2 rounded-md bg-slate-900 px-4 py-2 text-base font-semibold text-white ring-1 ring-inset ring-slate-800 hover:bg-slate-800">Read the README</a>
+            </p>
         </article>
     </main>
 
+    <!-- contact -->
+    <section class="mx-auto max-w-6xl px-4 pb-16">
+        <div class="prose prose-invert lg:prose-xl max-w-none">
+            <h2>Contact</h2>
+            <p>Need help, found a bug, or have an idea? Reach out below.</p>
+        </div>
+        <div class="mt-6 flex flex-wrap gap-3">
+            <a href="https://github.com/acemavrick/uil-dl/issues" class="inline-flex items-center gap-2 rounded-md bg-slate-800 px-4 py-2.5 text-base font-semibold text-white ring-1 ring-inset ring-slate-700 hover:bg-slate-700">Open an issue</a>
+            <a href="https://discord.gg/a6DdBaebPk" class="inline-flex items-center gap-2 rounded-md bg-slate-800 px-4 py-2.5 text-base font-semibold text-white ring-1 ring-inset ring-slate-700 hover:bg-slate-700">Join the Discord</a>
+            <a href="https://github.com/acemavrick" class="inline-flex items-center gap-2 rounded-md bg-slate-900 px-4 py-2.5 text-base font-semibold text-white ring-1 ring-inset ring-slate-800 hover:bg-slate-800">Contact</a>
+        </div>
+    </section>
+
     <!-- footer -->
     <footer class="border-t border-slate-800">
-        <div class="mx-auto max-w-6xl px-4 py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <p class="text-sm text-slate-400">UIL-DL v1.0.0-beta</p>
-            <p class="text-xs text-slate-500">© <span id="year"></span> UIL-DL. All rights reserved.</p>
+        <div class="mx-auto max-w-6xl px-4 py-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <p class="text-sm text-slate-400">© 2025 <a href="https://github.com/acemavrick" class="underline hover:text-slate-300">acemavrick</a> • MIT License</p>
+            <div class="flex flex-wrap gap-4 text-sm">
+                <a href="https://github.com/acemavrick/uil-dl/issues" class="text-slate-300 hover:text-white">Open an issue</a>
+                <a href="https://discord.gg/a6DdBaebPk" class="text-slate-300 hover:text-white">Join the Discord</a>
+                <a href="https://github.com/acemavrick" class="text-slate-300 hover:text-white">Contact</a>
+            </div>
         </div>
     </footer>
-
-    <script>
-        // set current year in footer
-        document.getElementById('year').textContent = new Date().getFullYear().toString();
-    </script>
 </body>
 </html>
