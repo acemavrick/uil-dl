@@ -81,8 +81,8 @@ def build_with_nuitka():
     - Windows builds must be performed on Windows; macOS app bundles on macOS.
     """
     
-    version = "1.0.0-beta"
-    version_numeric = "1.0.0.1" # for windows; the last number indicates the beta version (1-indexed)
+    version = "1.0.0-beta-2"
+    version_numeric = "1.0.0.1" # for windows; the last number indicates the beta-2 version (1-indexed)
     company = "acemavrick"
     product_name = "UIL-DL"
     file_description = "UIL-DL"

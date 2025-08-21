@@ -170,7 +170,7 @@ def initialization_and_app_logic(window):
         app_thread.start()
 
         print(f"""
-uil-dl 1.0.0-beta is now running.
+uil-dl 1.0.0-beta-2 is now running.
 access it through your browser at: http://127.0.0.1:{flask_port}
 downloads directory: {downloads_dir_path.as_uri()}
 log file: {(data_path / "uil-dl.log").as_uri()}
@@ -213,7 +213,7 @@ if __name__ == "__main__":
         webapp.analytics.init(data_path)
 
         window = webview.create_window(
-            'UIL-DL 1.0 Beta',
+            'UIL-DL 1.0 Beta 2',
             html=webapp.splash.SPLASH_HTML,
             width=1440,
             height=900,
