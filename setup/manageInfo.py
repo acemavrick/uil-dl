@@ -21,7 +21,7 @@ def download_info(path: Path) -> tuple[bool, str | None]:
     """Download the latest info.json from GitHub."""
     try:
         logger.info(f"Downloading info.json from {LINK} ----> {path}")
-        response = requests.get(LINK, timeout=10)
+        response = requests.get(LINK, timeout=10, verify=False)
         response.raise_for_status()
         with open(path, "w") as f:
             f.write(response.text)

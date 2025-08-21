@@ -2,10 +2,8 @@ if __name__ == '__main__':
     print("Please use the main.py script to start the application.")
     exit(1)
 
-import sys
 import os
 import json
-import logging
 import threading
 import shutil
 import tempfile
@@ -16,7 +14,7 @@ from werkzeug.utils import secure_filename
 from sqlalchemy import func
 from webapp.models import db, Contest
 from setup.buildDB import repopulate_database
-from setup.manageInfo import UpdateResult
+from setup.manageInfo import UpdateResult, update_info
 from setup.mylogging import LOGGER as logger
 from webapp.analytics import send_event, analytics_enabled
 from config import data_path
@@ -320,8 +318,8 @@ def refresh_info():
     try:
         logger.info("Starting refresh info process.")
         
-        # Call the update_info_from_online function
-        updated, value = update_info_from_online(data_dir=data_path)
+        # Call the update_info function
+        updated, value = update_info(data_dir=data_path)
         
         if updated == UpdateResult.UPDATED:
             logger.info("Info refreshed successfully - new version downloaded.")
@@ -782,7 +780,7 @@ def _perform_download(contest_item, link_type):
         
         try:
             with download_semaphore:
-                response = requests.get(url_to_download, timeout=30, stream=True)
+                response = requests.get(url_to_download, timeout=30, stream=True, verify=False)
                 response.raise_for_status()
 
             # Determine extension
