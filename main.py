@@ -92,10 +92,10 @@ updated_info = False
 
 def verify_info_json():
     global data_path, updated_info
-    import setup.downloadInfo as downloadInfo
-    from setup.downloadInfo import UpdateResult
+    import setup.manageInfo as manageInfo
+    from setup.manageInfo import UpdateResult
 
-    result, err_msg = downloadInfo.update_info_from_online(data_path)
+    result, err_msg = manageInfo.update_info(data_path)
     print()
     if result == UpdateResult.UPDATED:
         print("OK info.json updated")

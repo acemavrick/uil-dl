@@ -4,7 +4,7 @@ blinker==1.9.0
 bottle==0.13.4
 certifi==2025.8.3
 charset-normalizer==3.4.2
-click==8.2.1
+click==8.1.8
 colorama==0.4.6
 cssbeautifier==1.15.4
 dotenv==0.9.9
@@ -27,14 +27,17 @@ ordered-set==4.1.0
 packaging==25.0
 pathspec==0.12.1
 pillow==11.3.0
+pip_system_certs==5.2
 platformdirs==4.3.8
 portalocker==3.2.0
 proxy_tools==0.1.0
+pyinstaller-hooks-contrib==2025.8
 python-dotenv==1.1.1
 python-engineio==4.12.2
 python-socketio==5.13.0
 pywebview==5.4
 PyYAML==6.0.2
+QtPy==2.4.3
 regex==2025.7.34
 requests==2.32.4
 selectolax==0.3.32
@@ -43,6 +46,7 @@ simple-websocket==1.1.0
 six==1.17.0
 SQLAlchemy==2.0.42
 tqdm==4.67.1
+truststore==0.10.4
 typing_extensions==4.14.1
 urllib3==2.5.0
 Werkzeug==3.1.3

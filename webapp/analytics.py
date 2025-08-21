@@ -128,4 +128,12 @@ def test():
 
 if __name__ == "__main__":
     # test()
-    print(analytics_enabled_verbose())
+    # print(analytics_enabled_verbose())
+    url = "https://www.google.com"
+    try:
+        resp = requests.post(url, timeout=10)
+        print("success")
+        print("status code:", resp.status_code)
+    except Exception as e:
+        print("error:", e)
+    pass

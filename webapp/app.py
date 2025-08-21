@@ -16,7 +16,7 @@ from werkzeug.utils import secure_filename
 from sqlalchemy import func
 from webapp.models import db, Contest
 from setup.buildDB import repopulate_database
-from setup.downloadInfo import UpdateResult, update_info_from_online
+from setup.manageInfo import UpdateResult
 from setup.mylogging import LOGGER as logger
 from webapp.analytics import send_event, analytics_enabled
 from config import data_path
