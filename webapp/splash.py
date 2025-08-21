@@ -4,7 +4,7 @@ SPLASH_HTML= r"""
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UIL-DL 1.0 Beta</title>
+    <title>UIL-DL 1.0 Beta 2</title>
     <style>
         body {
             margin: 0;
@@ -62,7 +62,7 @@ SPLASH_HTML= r"""
 </head>
 <body>
     <div class="splash-container">
-        <div class="logo">UIL-DL 1.0 Beta</div>
+        <div class="logo">UIL-DL 1.0 Beta 2</div>
         <div class="tagline">by acemavrick</div>
         <div class="spinner"></div>
     </div>

@@ -1,10 +1,10 @@
-# UIL-DL Standalone *(v1.0 Beta)*
+# UIL-DL Standalone *(v1.0 Beta 2)*
 
 This branch is the source code of the standalone/app version. For the dev version that operates out of a repository, go to the [dev branch](https://github.com/acemavrick/uil-dl/tree/main).
 
 ## Table of Contents
 
-- [UIL-DL Standalone *(v1.0 Beta)*](#uil-dl-standalone-v10-beta)
+- [UIL-DL Standalone *(v1.0 Beta 2)*](#uil-dl-standalone-v10-beta-2)
   - [Table of Contents](#table-of-contents)
   - [Overview](#overview)
   - [Features](#features)

@@ -17,12 +17,12 @@ VSVersionInfo(
         [
           StringStruct('CompanyName', 'acemavrick'),
           StringStruct('FileDescription', 'UIL-DL'),
-          StringStruct('FileVersion', '1.0.0-beta'),
+          StringStruct('FileVersion', '1.0.0-beta-2'),
           StringStruct('InternalName', 'uil-dl'),
           StringStruct('LegalCopyright', 'Copyright © 2025 acemavrick. Licensed under the MIT License. See github.com/acemavrick/uil-dl'),
           StringStruct('OriginalFilename', 'uil-dl.exe'),
           StringStruct('ProductName', 'UIL-DL'),
-          StringStruct('ProductVersion', '1.0.0-beta')
+          StringStruct('ProductVersion', '1.0.0-beta-2')
         ]
       )
     ]),
