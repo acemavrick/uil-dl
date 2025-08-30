@@ -1,6 +1,6 @@
 [Setup]
 AppName=UIL-DL
-AppVersion=1.0.0.1
+AppVersion=1.0.0.2
 AppId={{CA564B92-37BA-4D85-B190-218890A7459D}}
 DefaultDirName={localappdata}\UIL-DL
 OutputBaseFilename=UILDL-Setup
