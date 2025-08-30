@@ -1,5 +1,14 @@
 # UIL-DL Standalone *(v1.0 Beta 2)*
 
+> This represents the **second** beta of the app.  
+> After reviewing the changes I was planning to make to the app, I realized that it would be easier to just make a new version than to release a second beta.
+>
+> The biggest difference between this and the first beta is that `pywebview` is not being used.
+> The reasoning for this is because it was giving me a huge amount of pain when building for windows.
+> I just shifted to a small tkinter-based GUI.
+>
+> In summary, there is and will be no proper build for this version released by me. Work has shifted to 2.0.
+
 This branch is the source code of the standalone/app version. For the dev version that operates out of a repository, go to the [dev branch](https://github.com/acemavrick/uil-dl/tree/main).
 
 ## Table of Contents
