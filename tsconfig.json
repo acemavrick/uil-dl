@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "baseUrl": ".",
+    "paths": {
+      "@frontend/*": ["frontend/*"]
+    },
+    "types": ["svelte", "vite/client"],
+    "allowJs": true,
+    "checkJs": false,
+    "noEmit": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true
+  },
+  "include": [
+    "frontend/**/*.svelte",
+    "frontend/src/**/*.js",
+    "frontend/**/*.ts",
+    "vite.config.mjs"
+  ],
+  "exclude": ["node_modules", "dist"]
+}
+
+
