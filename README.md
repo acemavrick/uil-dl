@@ -1,10 +1,10 @@
-# UIL-DL Standalone *(v1.0 Beta 2)*
+# UIL-DL Standalone *(v2.0 Beta 1)*
 
-This branch is the source code of the standalone/app version. For the dev version that operates out of a repository, go to the [dev branch](https://github.com/acemavrick/uil-dl/tree/main).
+Under development.
 
-## Table of Contents
+<!-- ## Table of Contents
 
-- [UIL-DL Standalone *(v1.0 Beta 2)*](#uil-dl-standalone-v10-beta-2)
+- [UIL-DL Standalone *(v2.0 Beta 1)*](#uil-dl-standalone-v20-beta-1)
   - [Table of Contents](#table-of-contents)
   - [Overview](#overview)
   - [Features](#features)
@@ -136,4 +136,4 @@ To contribute code:
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Submit a well-documented pull request
+4. Submit a well-documented pull request -->
