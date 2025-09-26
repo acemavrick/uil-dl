@@ -1,6 +1,21 @@
 # UIL-DL Standalone *(v2.0 Beta 1)*
 
-Under development.
+## To Run
+1. Build the frontend.
+```bash
+cd frontend && npm run build
+```
+
+2. Make sure the DB is built
+```bash
+python buildDB.py
+```
+
+3. Run the server & go to the specified address.
+```bash
+python runserver.py
+```
+
 
 <!-- ## Table of Contents
 
