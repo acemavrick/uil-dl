@@ -182,4 +182,7 @@ pyrightconfig.json
 package
 
 # End of https://www.toptal.com/developers/gitignore/api/svelte,python
+
 data/db.sqlite
+*.ai
+*/release/*

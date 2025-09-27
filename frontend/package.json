@@ -21,6 +21,7 @@
 		"@tailwindcss/vite": "^4.0.0",
 		"svelte": "^5.0.0",
 		"svelte-check": "^4.0.0",
+		"svelte-headless-table": "^0.18.3",
 		"tailwindcss": "^4.0.0",
 		"typescript": "^5.0.0",
 		"vite": "^7.0.4"

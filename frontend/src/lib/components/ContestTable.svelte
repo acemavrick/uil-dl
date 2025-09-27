@@ -1,71 +1,101 @@
 <script lang="ts">
-    import { onMount } from "svelte";
-    import { on } from "svelte/events";
+    import { type Readable } from "svelte/store";
+    import { createTable, Render, Subscribe, createRender } from "svelte-headless-table";
+    import { addSortBy } from "svelte-headless-table/plugins";
+    import LinkCell from "$lib/components/LinkCell.svelte";
 
-    /**
-      "id": 2,
-      "subject": "Accounting",
-      "level": "District",
-      "year": 2019,
-      "level_sort": 3,
-      "pdf_link": "https://www.uiltexas.org/files/academics/Accounting_StudyPacket_D_19.pdf",
-      "zip_link": null,
-      "other_link": null
-    */
+    type Contest = { id: number, subject: string, level: string, year: number, level_sort: number, pdf_link: string|null, zip_link: string|null, other_link: string|null };
+    let { data }: { data: Readable<Contest[]> } = $props();
 
-
-    let contests: {id: number, subject: string, level: string, year: number, level_sort: number, pdf_link: string|null, zip_link: string|null, other_link: string|null}[] = [];
-
-    function fetchContests() {
-        fetch("/api/contests")
-            .then(response => response.json())
-            .then(data => {
-                contests = data.contests;
-                // sort by subject, then by year desc, then level_sort
-                contests.sort((a, b) => {
-                    if (a.subject < b.subject) return -1;
-                    if (a.subject > b.subject) return 1;
-                    if (a.year > b.year) return -1;
-                    if (a.year < b.year) return 1;
-                    if (a.level_sort < b.level_sort) return -1;
-                    if (a.level_sort > b.level_sort) return 1;
-                    return 0;
-                });
-            });
-    }
-
-    onMount(() => {
-        fetchContests();
+    // table
+    const table = createTable(data, {
+        addSortBy: addSortBy({ initialSortKeys: [{ id: 'subject', order: 'asc' }] }),
     });
+
+    const columns = table.createColumns([
+        table.column({
+            header: "Subject",
+            accessor: "subject",
+            cell: (cell) => cell.value as unknown as string,
+            plugins: {
+                addSortBy: {},
+            },
+        }),
+        table.column({
+            header: "Level",
+            accessor: "level",
+            cell: (cell) => cell.value as unknown as string,
+            plugins: {
+                addSortBy: {},
+            },
+        }),
+        table.column({
+            header: "Year",
+            accessor: "year",
+            cell: (cell) => String(cell.value as unknown as number),
+            plugins: {
+                addSortBy: {},
+            },
+        }),
+        table.display({
+            id: "links",
+            header: "Links",
+            cell: (cell) => createRender(
+                LinkCell as unknown as new (...args: any[]) => import('svelte').SvelteComponent,
+                {
+                    pdf_link: cell.row.isData() ? (cell.row.original as Contest).pdf_link : null,
+                    zip_link: cell.row.isData() ? (cell.row.original as Contest).zip_link : null,
+                    other_link: cell.row.isData() ? (cell.row.original as Contest).other_link : null,
+                }
+            ),
+        }),
+    ]);
+
+    const { headerRows, rows, tableAttrs, tableBodyAttrs, tableHeadAttrs } = table.createViewModel(columns);
 </script>
 
-<table class="min-w-full bg-white shadow-md rounded-lg overflow-scroll">
-    <thead>
-        <tr class="bg-gray-200">
-            <th class="px-4 py-2 text-left">Subject</th>
-            <th class="px-4 py-2 text-left">Level</th>
-            <th class="px-4 py-2 text-left">Year</th>
-            <th class="px-4 py-2 text-left">Links</th>
-        </tr>
+<!-- todo: add instructions about sorting (click, shift click, etc.) -->
+<table class="min-w-full bg-white shadow-md rounded-lg overflow-hidden" {...$tableAttrs}>
+    <thead {...$tableHeadAttrs}>
+        {#each $headerRows as headerRow (headerRow.id)}
+            <Subscribe rowAttrs={headerRow.attrs()} let:rowAttrs>
+                <tr class="bg-gray-200" {...rowAttrs}>
+                    {#each headerRow.cells as cell (cell.id)}
+                        <Subscribe attrs={cell.attrs()} props={cell.props()} let:attrs let:props>
+                            <th class="px-4 py-2 text-left align-top" {...attrs}>
+                                <button
+                                    type="button"
+                                    class="flex items-center gap-2 w-full text-left font-semibold {props.addSortBy ? 'cursor-pointer' : 'cursor-default'}"
+                                    onclick={props.addSortBy?.toggle}
+                                    disabled={!props.addSortBy}
+                                >
+                                    <Render of={cell.render()} />
+                                    {#if props.addSortBy?.order === 'asc'}
+                                        <span class="ml-auto">▲</span>
+                                    {:else if props.addSortBy?.order === 'desc'}
+                                        <span class="ml-auto">▼</span>
+                                    {/if}
+                                </button>
+                            </th>
+                        </Subscribe>
+                    {/each}
+                </tr>
+            </Subscribe>
+        {/each}
     </thead>
-    <tbody>
-        {#each contests as contest}
-            <tr class="border-b hover:bg-gray-100">
-                <td class="px-4 py-2">{contest.subject}</td>
-                <td class="px-4 py-2">{contest.level}</td>
-                <td class="px-4 py-2">{contest.year}</td>
-                <td class="px-4 py-2 space-x-2">
-                    {#if contest.pdf_link}
-                        <a href={contest.pdf_link} target="_blank" class="text-blue-600 hover:underline">PDF</a>
-                    {/if}
-                    {#if contest.zip_link}
-                        <a href={contest.zip_link} target="_blank" class="text-blue-600 hover:underline">ZIP</a>
-                    {/if}
-                    {#if contest.other_link}
-                        <a href={contest.other_link} target="_blank" class="text-blue-600 hover:underline">Other</a>
-                    {/if}
-                </td>
-            </tr>
+    <tbody {...$tableBodyAttrs}>
+        {#each $rows as row (row.id)}
+            <Subscribe rowAttrs={row.attrs()} let:rowAttrs>
+                <tr class="border-b hover:bg-gray-100" {...rowAttrs}>
+                    {#each row.cells as cell (cell.id)}
+                        <Subscribe attrs={cell.attrs()} let:attrs>
+                            <td class="px-4" {...attrs}>
+                                <Render of={cell.render()} />
+                            </td>
+                        </Subscribe>
+                    {/each}
+                </tr>
+            </Subscribe>
         {/each}
     </tbody>
 </table>
