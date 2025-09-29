@@ -2,6 +2,7 @@
     import { writable, derived, type Writable, type Readable } from "svelte/store";
     import ContestTable from "$lib/components/ContestTable.svelte";
     import FilterPanel from "$lib/components/FilterPanel.svelte";
+    import icon from "$lib/assets/icon.svg";
 
     type Contest = { id: number, subject: string, level: string, year: number, level_sort: number, pdf_link: string|null, zip_link: string|null, other_link: string|null };
 
@@ -49,8 +50,11 @@
     <title>UIL-DL Online</title>
 </svelte:head>
 
-<div class="flex flex-col items-center min-w-full bg-gray-50 text-gray-800 pt-10 px-4">
-	<h1 class="text-4xl font-light mb-4 text-gray-900">UIL-DL <span class="text-emerald-600">Online</span></h1>
+<div class="flex flex-col items-center min-w-full bg-stone-100 text-gray-800 pt-10 px-4 bg-fixed">
+    <h1 class="text-4xl font-semibold mb-4 text-gray-900">
+        <img src={icon} alt="UIL-DL Online Logo" class="inline w-15 h-15 mb-2 mr-2" />
+        UIL-DL <span class="text-emerald-600 font-normal">Online</span>
+    </h1>
 
     <FilterPanel 
         allContests={allContests}

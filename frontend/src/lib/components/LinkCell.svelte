@@ -5,16 +5,25 @@
 
 <div class="px-4 py-2 space-x-2">
     {#if pdf_link}
-        <a href={pdf_link} target="_blank" class="text-blue-600 hover:underline">PDF</a>
+        <a href={pdf_link} target="_blank" class="text-white rounded-full px-2 py-1 bg-emerald-600 hover:bg-emerald-200 hover:text-black
+        transition-colors ">
+            PDF
+        </a>
     {/if}
     {#if zip_link}
-        <a href={zip_link} target="_blank" class="text-blue-600 hover:underline">ZIP</a>
+        <a href={zip_link} target="_blank" class="text-white rounded-full px-2 py-1 bg-violet-600 hover:bg-violet-200 hover:text-black
+        transition-colors ">
+            ZIP
+        </a>
     {/if}
     {#if other_link}
-        <a href={other_link} target="_blank" class="text-blue-600 hover:underline">Other</a>
+        <a href={other_link} target="_blank" class="text-white rounded-full px-2 py-1 bg-rose-600 hover:bg-rose-200 hover:text-black
+        transition-colors ">
+            Other
+        </a>
     {/if}
     {#if !pdf_link && !zip_link && !other_link}
-        <span class="text-gray-400">—</span>
+        <span class="text-gray-400">No Files</span>
     {/if}
 </div>
 

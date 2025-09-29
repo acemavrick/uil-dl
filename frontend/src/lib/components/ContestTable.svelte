@@ -59,7 +59,7 @@
     <thead {...$tableHeadAttrs}>
         {#each $headerRows as headerRow (headerRow.id)}
             <Subscribe rowAttrs={headerRow.attrs()} let:rowAttrs>
-                <tr class="bg-gray-200" {...rowAttrs}>
+                <tr class="bg-stone-200" {...rowAttrs}>
                     {#each headerRow.cells as cell (cell.id)}
                         <Subscribe attrs={cell.attrs()} props={cell.props()} let:attrs let:props>
                             <th class="px-4 py-2 text-left align-top" {...attrs}>
