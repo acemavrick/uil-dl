@@ -1,24 +1,12 @@
 <script lang="ts">
-	import '../app.css';
-	import favicon from '$lib/assets/icon.svg';
-	import fav16 from '$lib/assets/icon-16.png';
-	import fav32 from '$lib/assets/icon-32.png';
-	import fav48 from '$lib/assets/icon-48.png';
-	import fav192 from '$lib/assets/icon-192.png';
+	import '../../app.css';
 	import fav512 from '$lib/assets/icon-512.png';
 	
 	let { children } = $props();
 </script>
 
 <svelte:head>
-	<link rel="icon" href={favicon} />
-	<link rel="icon" sizes="16x16" href={fav16} />
-	<link rel="icon" sizes="32x32" href={fav32} />
-	<link rel="icon" sizes="48x48" href={fav48} />
-	<link rel="icon" sizes="192x192" href={fav192} />
-	<link rel="icon" sizes="512x512" href={fav512} />
-
-	<!-- theme and app metadata -->
+	<!-- theme and app metadata (changed from homepage) -->
 	<meta name="theme-color" content="#3b82f6" />
 	<meta name="msapplication-TileColor" content="#3b82f6" />
 	<meta name="apple-mobile-web-app-capable" content="yes" />
@@ -32,8 +20,7 @@
 	<meta property="og:title" content="UIL-DL" />
 	<meta property="og:description" content="Your app description here" />
 	<meta property="og:image" content={fav512} />
-
-	<title>UIL-DL</title>
+	<title>UIL-DL Online</title>
 </svelte:head>
 
 {@render children?.()}

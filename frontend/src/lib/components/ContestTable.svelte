@@ -3,9 +3,10 @@
     import { createTable, Render, Subscribe, createRender } from "svelte-headless-table";
     import { addSortBy } from "svelte-headless-table/plugins";
     import LinkCell from "$lib/components/LinkCell.svelte";
+    import LevelCell from "$lib/components/LevelCell.svelte";
 
     type Contest = { id: number, subject: string, level: string, year: number, level_sort: number, pdf_link: string|null, zip_link: string|null, other_link: string|null };
-    let { data }: { data: Readable<Contest[]> } = $props();
+    let { data, gradient_coloring }: { data: Readable<Contest[]>, gradient_coloring: boolean } = $props();
 
     // table
     const table = createTable(data, {
@@ -24,7 +25,13 @@
         table.column({
             header: "Level",
             accessor: "level",
-            cell: (cell) => cell.value as unknown as string,
+            cell: (cell) => createRender(
+                LevelCell as unknown as new (...args: any[]) => import('svelte').SvelteComponent,
+                {
+                    level: cell.value as unknown as string,
+                    gradient: gradient_coloring
+                }
+            ),
             plugins: {
                 addSortBy: {},
             },

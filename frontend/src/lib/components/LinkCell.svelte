@@ -5,7 +5,7 @@
 
 <div class="px-4 py-2 space-x-2">
     {#if pdf_link}
-        <a href={pdf_link} target="_blank" class="text-white rounded-full px-2 py-1 bg-emerald-600 hover:bg-emerald-200 hover:text-black
+        <a href={pdf_link} target="_blank" class="text-white rounded-full px-2 py-1 bg-lime-700 hover:bg-lime-200 hover:text-black
         transition-colors ">
             PDF
         </a>
@@ -17,7 +17,7 @@
         </a>
     {/if}
     {#if other_link}
-        <a href={other_link} target="_blank" class="text-white rounded-full px-2 py-1 bg-rose-600 hover:bg-rose-200 hover:text-black
+        <a href={other_link} target="_blank" class="text-white rounded-full px-2 py-1 bg-rose-500 hover:bg-rose-200 hover:text-black
         transition-colors ">
             Other
         </a>
