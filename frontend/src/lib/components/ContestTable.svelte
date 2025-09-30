@@ -61,48 +61,51 @@
     const { headerRows, rows, tableAttrs, tableBodyAttrs, tableHeadAttrs } = table.createViewModel(columns);
 </script>
 
-<!-- todo: add instructions about sorting (click, shift click, etc.) -->
-<table class="min-w-full bg-white shadow-md rounded-lg overflow-hidden" {...$tableAttrs}>
-    <thead {...$tableHeadAttrs}>
-        {#each $headerRows as headerRow (headerRow.id)}
-            <Subscribe rowAttrs={headerRow.attrs()} let:rowAttrs>
-                <tr class="bg-stone-200" {...rowAttrs}>
-                    {#each headerRow.cells as cell (cell.id)}
-                        <Subscribe attrs={cell.attrs()} props={cell.props()} let:attrs let:props>
-                            <th class="px-4 py-2 text-left align-top" {...attrs}>
-                                <button
-                                    type="button"
-                                    class="flex items-center gap-2 w-full text-left font-semibold {props.addSortBy ? 'cursor-pointer' : 'cursor-default'}"
-                                    onclick={props.addSortBy?.toggle}
-                                    disabled={!props.addSortBy}
-                                >
-                                    <Render of={cell.render()} />
-                                    {#if props.addSortBy?.order === 'asc'}
-                                        <span class="ml-auto">▲</span>
-                                    {:else if props.addSortBy?.order === 'desc'}
-                                        <span class="ml-auto">▼</span>
-                                    {/if}
-                                </button>
-                            </th>
-                        </Subscribe>
-                    {/each}
-                </tr>
-            </Subscribe>
-        {/each}
-    </thead>
-    <tbody {...$tableBodyAttrs}>
-        {#each $rows as row (row.id)}
-            <Subscribe rowAttrs={row.attrs()} let:rowAttrs>
-                <tr class="border-b hover:bg-gray-100" {...rowAttrs}>
-                    {#each row.cells as cell (cell.id)}
-                        <Subscribe attrs={cell.attrs()} let:attrs>
-                            <td class="px-4" {...attrs}>
-                                <Render of={cell.render()} />
-                            </td>
-                        </Subscribe>
-                    {/each}
-                </tr>
-            </Subscribe>
-        {/each}
-    </tbody>
-</table>
+<div class="rounded-xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 shadow-sm overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="min-w-full" {...$tableAttrs}>
+            <thead {...$tableHeadAttrs}>
+                {#each $headerRows as headerRow (headerRow.id)}
+                    <Subscribe rowAttrs={headerRow.attrs()} let:rowAttrs>
+                        <tr class="bg-stone-100 dark:bg-stone-800/50 border-b border-stone-200 dark:border-stone-700" {...rowAttrs}>
+                            {#each headerRow.cells as cell (cell.id)}
+                                <Subscribe attrs={cell.attrs()} props={cell.props()} let:attrs let:props>
+                                    <th class="px-3 sm:px-4 py-2.5 text-left align-top whitespace-nowrap" {...attrs}>
+                                        <button
+                                            type="button"
+                                            class="flex items-center gap-2 w-full text-left text-sm font-semibold text-stone-900 dark:text-stone-100 {props.addSortBy ? 'cursor-pointer hover:text-emerald-600 dark:hover:text-emerald-400' : 'cursor-default'} transition-colors"
+                                            onclick={props.addSortBy?.toggle}
+                                            disabled={!props.addSortBy}
+                                        >
+                                            <Render of={cell.render()} />
+                                            {#if props.addSortBy?.order === 'asc'}
+                                                <span class="text-emerald-600 dark:text-emerald-400 text-xs">▲</span>
+                                            {:else if props.addSortBy?.order === 'desc'}
+                                                <span class="text-emerald-600 dark:text-emerald-400 text-xs">▼</span>
+                                            {/if}
+                                        </button>
+                                    </th>
+                                </Subscribe>
+                            {/each}
+                        </tr>
+                    </Subscribe>
+                {/each}
+            </thead>
+            <tbody {...$tableBodyAttrs}>
+                {#each $rows as row (row.id)}
+                    <Subscribe rowAttrs={row.attrs()} let:rowAttrs>
+                        <tr class="border-b border-stone-200 dark:border-stone-800 hover:bg-stone-50 dark:hover:bg-stone-800/30 transition-colors" {...rowAttrs}>
+                            {#each row.cells as cell (cell.id)}
+                                <Subscribe attrs={cell.attrs()} let:attrs>
+                                    <td class="px-3 sm:px-4 py-2.5 text-sm text-stone-700 dark:text-stone-300" {...attrs}>
+                                        <Render of={cell.render()} />
+                                    </td>
+                                </Subscribe>
+                            {/each}
+                        </tr>
+                    </Subscribe>
+                {/each}
+            </tbody>
+        </table>
+    </div>
+</div>

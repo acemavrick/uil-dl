@@ -1,9 +1,10 @@
 <script lang="ts">
     import icon from "$lib/assets/icon.svg";
     import app_lm_home from "$lib/assets/light_mode_homepage.png";
+    import { APP_VERSION, ONLINE_VERSION } from "$lib/version";
 
-    const app_version = "1.0.0-beta";
-    const online_version = "1.0";
+    const app_version = APP_VERSION;
+    const online_version = ONLINE_VERSION;
 </script>
 
 <!-- main page -->
@@ -24,7 +25,7 @@
                     <span class="hidden sm:inline">Online</span>
                     <span class="sm:hidden">▶ Online</span>
                 </a>
-                <a 
+               <a 
                     href="https://discord.gg/a6DdBaebPk" 
                     title="Join the UIL-DL community on Discord"
                     class="hidden md:inline-flex items-center gap-1.5 rounded-lg bg-slate-800 px-3 py-2 text-sm font-semibold text-white ring-1 ring-inset ring-slate-700 hover:bg-slate-700 transition-colors"
@@ -41,7 +42,7 @@
                 <a 
                     href="https://github.com/acemavrick/uil-dl/releases" 
                     title="Download the desktop app"
-                    class="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-3 py-1.5 sm:px-4 sm:py-2 text-sm font-semibold text-white shadow-lg shadow-red-500/25 hover:bg-red-500 hover:shadow-red-500/40 transition-all duration-200"
+                    class="inline-flex items-center gap-1.5 rounded-lg bg-sky-600 px-3 py-1.5 sm:px-4 sm:py-2 text-sm font-semibold text-white shadow-lg shadow-sky-500/25 hover:bg-sky-500 hover:shadow-sky-500/40 transition-all duration-200"
                 >
                     <span class="hidden sm:inline">Download</span>
                     <span class="sm:hidden">⬇</span>
@@ -61,7 +62,7 @@
             <div class="text-center">
                 <!-- version badges -->
                 <div class="flex items-center justify-center gap-2 mb-6">
-                    <span class="inline-flex items-center rounded-full bg-slate-800/60 px-3 py-1 text-xs font-medium text-slate-200 ring-1 ring-inset ring-slate-700/50 backdrop-blur">
+                    <span class="inline-flex items-center rounded-full bg-sky-900/60 px-3 py-1 text-xs font-medium text-sky-100 ring-1 ring-inset ring-sky-700/50 backdrop-blur">
                         Desktop {app_version}
                     </span>
                     <span class="inline-flex items-center rounded-full bg-emerald-900/60 px-3 py-1 text-xs font-medium text-emerald-100 ring-1 ring-inset ring-emerald-700/50 backdrop-blur">
@@ -77,7 +78,7 @@
 
                 <!-- subhead -->
                 <p class="mt-6 text-lg sm:text-xl text-slate-300 max-w-3xl mx-auto leading-relaxed">
-                    Stop hunting for contest packets. Filter by subject, level, and year—then download everything at once. Choose the browser app or install the desktop version.
+                    Stop hunting for contest packets. Filter by subject, level, and year – then download everything at once. Choose the browser app or install the desktop version.
                 </p>
 
                 <!-- cta buttons -->
@@ -95,7 +96,7 @@
                     <a 
                         href="https://github.com/acemavrick/uil-dl/releases" 
                         title="Download the desktop app for offline use"
-                        class="group inline-flex items-center gap-2 rounded-xl bg-slate-800 px-6 py-3.5 text-base font-semibold text-white ring-1 ring-inset ring-slate-700 hover:bg-slate-700 transition-all duration-200 hover:scale-105"
+                        class="group inline-flex items-center gap-2 rounded-xl bg-sky-600 px-6 py-3.5 text-base font-semibold text-white shadow-lg shadow-sky-500/30 hover:bg-sky-500 hover:shadow-sky-500/50 transition-all duration-200 hover:scale-105"
                     >
                         <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -230,7 +231,7 @@
                     <div>
                         <h3 class="text-lg font-semibold mb-2">Cache & organize</h3>
                         <p class="text-slate-400 leading-relaxed">
-                            Files are saved with clean names. A local manifest tracks downloads—refresh or reset without losing files.
+                            Files are saved with clean names. A local manifest tracks downloads – refresh or reset without losing files.
                         </p>
                     </div>
                 </div>
@@ -293,32 +294,32 @@
 
             <!-- desktop app -->
             <div class="relative group">
-                <div class="absolute inset-0 rounded-3xl bg-gradient-to-br from-red-500/20 to-orange-500/20 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                <div class="relative rounded-3xl bg-slate-900/50 ring-1 ring-slate-800 p-10 hover:ring-red-500/50 transition-all">
+                <div class="absolute inset-0 rounded-3xl bg-gradient-to-br from-sky-500/20 to-blue-500/20 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div class="relative rounded-3xl bg-slate-900/50 ring-1 ring-slate-800 p-10 hover:ring-sky-500/50 transition-all">
                     <div class="flex items-start justify-between mb-6">
                         <div>
-                            <h3 class="text-2xl font-bold text-red-400">Desktop App</h3>
+                            <h3 class="text-2xl font-bold text-sky-400">Desktop App</h3>
                             <p class="mt-1 text-sm text-slate-400">Version {app_version}</p>
                         </div>
-                        <span class="inline-flex items-center rounded-full bg-red-500/10 px-3 py-1 text-xs font-medium text-red-300 ring-1 ring-red-500/20">
+                        <span class="inline-flex items-center rounded-full bg-sky-500/10 px-3 py-1 text-xs font-medium text-sky-300 ring-1 ring-sky-500/20">
                             Full-featured
                         </span>
                     </div>
                     <ul class="space-y-3 mb-8">
                         <li class="flex items-start gap-3 text-slate-300">
-                            <svg class="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg class="h-5 w-5 text-sky-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                             </svg>
                             <span>Batch download to local folders</span>
                         </li>
                         <li class="flex items-start gap-3 text-slate-300">
-                            <svg class="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg class="h-5 w-5 text-sky-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                             </svg>
                             <span>Smart caching for offline access</span>
                         </li>
                         <li class="flex items-start gap-3 text-slate-300">
-                            <svg class="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg class="h-5 w-5 text-sky-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                             </svg>
                             <span>Organized filenames for workflows</span>
@@ -327,7 +328,7 @@
                     <a 
                         href="https://github.com/acemavrick/uil-dl/releases" 
                         title="Download the desktop app"
-                        class="inline-flex items-center justify-center w-full gap-2 rounded-xl bg-red-600 px-4 py-3 text-base font-semibold text-white shadow-lg hover:bg-red-500 transition-all"
+                        class="inline-flex items-center justify-center w-full gap-2 rounded-xl bg-sky-600 px-4 py-3 text-base font-semibold text-white shadow-lg hover:bg-sky-500 transition-all"
                     >
                         Get Desktop App
                     </a>

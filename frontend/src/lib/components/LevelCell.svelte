@@ -3,24 +3,20 @@
     const clevel = level.toLowerCase().trim();
 </script>
 
-<div class="px-4 py-2 space-x-2">
-    <!-- link-style coloring for level -->
-    <!-- because this is a scale, we can just pick a color and then go up the scale -->
-    <!-- for light mode, we go darker in tailwind colors -->
-    <!-- for dark mode, we go the other way -->
+<div class="py-0.5">
     {#if gradient}
         {#if clevel === 'study packet'}
-            <span class="text-teal-900">Study Packet</span>
+            <span class="text-teal-200 dark:text-teal-900">{level}</span>
         {:else if clevel === 'invitational a'}
-            <span class="text-teal-400">Invitational A</span>
+            <span class="text-teal-400 dark:text-teal-600">{level}</span>
         {:else if clevel === 'invitational b'}
-            <span class="text-teal-500">Invitational B</span>
+            <span class="text-teal-500">{level}</span>
         {:else if clevel === 'district'}
-            <span class="text-teal-600">District</span>
+            <span class="text-teal-600 dark:text-teal-400">{level}</span>
         {:else if clevel === 'region'}
-            <span class="text-teal-700">Region</span>
+            <span class="text-teal-700 dark:text-teal-300">{level}</span>
         {:else if clevel === 'state'}
-            <span class="text-teal-950">State</span>
+            <span class="text-teal-900 dark:text-teal-200">{level}</span>
         {:else}
             <span>{level}</span>
         {/if}
