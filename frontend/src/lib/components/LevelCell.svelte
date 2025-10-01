@@ -3,20 +3,29 @@
     const clevel = level.toLowerCase().trim();
 </script>
 
-<div class="py-0.5">
+<!-- Gradient
+    #00615c
+    #0d6d44
+    #497417
+    #867000
+    #c85a06
+    #ff1f57
+ -->
+
+<div class="py-0.5 font-bold">
     {#if gradient}
         {#if clevel === 'study packet'}
-            <span class="text-teal-200 dark:text-teal-900">{level}</span>
+            <span class="text-[#00615c]">{level}</span>
         {:else if clevel === 'invitational a'}
-            <span class="text-teal-400 dark:text-teal-600">{level}</span>
+            <span class="text-[#0d6d44]">{level}</span>
         {:else if clevel === 'invitational b'}
-            <span class="text-teal-500">{level}</span>
+            <span class="text-[#497417]">{level}</span>
         {:else if clevel === 'district'}
-            <span class="text-teal-600 dark:text-teal-400">{level}</span>
+            <span class="text-[#867000]">{level}</span>
         {:else if clevel === 'region'}
-            <span class="text-teal-700 dark:text-teal-300">{level}</span>
+            <span class="text-[#c85a06]">{level}</span>
         {:else if clevel === 'state'}
-            <span class="text-teal-900 dark:text-teal-200">{level}</span>
+            <span class="text-[#ff1f57]">{level}</span>
         {:else}
             <span>{level}</span>
         {/if}
