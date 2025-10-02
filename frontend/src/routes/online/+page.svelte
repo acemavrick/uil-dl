@@ -166,38 +166,45 @@
                             </button>
                         </div>
                         {#if gradient_coloring}
+                            <!-- Gradient
+                                #00615c
+                                #0d6d44
+                                #497417
+                                #867000
+                                #c85a06
+                                #ff1f57
 
-<!-- Gradient
-    #00615c
-    #0d6d44
-    #497417
-    #867000
-    #c85a06
-    #ff1f57
- -->
+                                light:
+                                #00d692
+                                #76c859
+                                #adb431
+                                #d89a2f
+                                #f57c4f
+                                #ff61ac
+                             -->
                             <div class="grid grid-cols-2 gap-2 text-sm">
                                 <div class="flex items-center gap-2">
-                                    <span class="w-3 h-3 rounded-full bg-[#00615c]"></span>
+                                    <span class="w-3 h-3 rounded-full bg-[#00d692] dark:bg-[#00615c]"></span>
                                     <span class="text-stone-600 dark:text-stone-400">Study Packet</span>
                                 </div>
                                 <div class="flex items-center gap-2">
-                                    <span class="w-3 h-3 rounded-full bg-[#0d6d44]"></span>
+                                    <span class="w-3 h-3 rounded-full bg-[#76c859] dark:bg-[#0d6d44]"></span>
                                     <span class="text-stone-600 dark:text-stone-400">Invitational A</span>
                                 </div>
                                 <div class="flex items-center gap-2">
-                                    <span class="w-3 h-3 rounded-full bg-[#497417]"></span>
+                                    <span class="w-3 h-3 rounded-full bg-[#adb431] dark:bg-[#497417]"></span>
                                     <span class="text-stone-600 dark:text-stone-400">Invitational B</span>
                                 </div>
                                 <div class="flex items-center gap-2">
-                                    <span class="w-3 h-3 rounded-full bg-[#867000]"></span>
+                                    <span class="w-3 h-3 rounded-full bg-[#d89a2f] dark:bg-[#867000]"></span>
                                     <span class="text-stone-600 dark:text-stone-400">District</span>
                                 </div>
                                 <div class="flex items-center gap-2">
-                                    <span class="w-3 h-3 rounded-full bg-[#c85a06]"></span>
+                                    <span class="w-3 h-3 rounded-full bg-[#f57c4f] dark:bg-[#c85a06]"></span>
                                     <span class="text-stone-600 dark:text-stone-400">Region</span>
                                 </div>
                                 <div class="flex items-center gap-2">
-                                    <span class="w-3 h-3 rounded-full bg-[#ff1f57]"></span>
+                                    <span class="w-3 h-3 rounded-full bg-[#ff61AC] dark:bg-[#ff1f57]"></span>
                                     <span class="text-stone-600 dark:text-stone-400">State</span>
                                 </div>
                             </div>
