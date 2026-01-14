@@ -1,21 +1,7 @@
-# UIL-DL Standalone *(v2.0 Beta 1)*
+# UIL-DL Online
 
-## To Run
-1. Build the frontend.
-```bash
-cd frontend && npm run build
-```
-
-2. Make sure the DB is built
-```bash
-python buildDB.py
-```
-
-3. Run the server & go to the specified address.
-```bash
-python runserver.py
-```
-
+Lite version of UIL-DL hosted online.
+Online at: [https://uildl-app.randeria.dev](https://uildl-app.randeria.dev).
 
 <!-- ## Table of Contents
 
