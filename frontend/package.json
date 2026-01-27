@@ -4,7 +4,7 @@
 	"version": "2.0.0",
 	"type": "module",
 	"scripts": {
-	  "gen-icons": "rm -rf src/lib/icons && tauri icon -o src/lib/icons ../assets/app-icon.png && rm -rf src/lib/icons/ios src/lib/icons/android && echo 'Generated icons, deleted iOS & Android'",
+		"gen-icons": "rm -rf src/lib/icons && tauri icon -o src/lib/icons ../assets/app-icon.png && rm -rf src/lib/icons/ios src/lib/icons/android && echo 'Generated icons, deleted iOS & Android'",
 		"dev:frontend": "vite dev",
 		"build:frontend": "vite build",
 		"dev": "pnpm tauri dev",
@@ -28,5 +28,9 @@
 		"tailwindcss": "^4.1.18",
 		"typescript": "^5.9.3",
 		"vite": "^7.3.1"
+	},
+	"dependencies": {
+		"@tauri-apps/api": "^2.9.1",
+		"@tauri-apps/plugin-os": "^2.3.2"
 	}
 }
