@@ -4,12 +4,15 @@
     import { contests, loading } from "$lib/stores/contests";
     import { cached } from "$lib/stores/cache";
     import { config } from "$lib/stores/config";
+    import { queue, queueStats } from "$lib/stores/queue";
     import {
         getContests,
         getCached,
         getConfig,
         onLoadingProgress,
     } from "$lib/tauri";
+    import { commands } from "$lib/bindings";
+    import { listen } from "@tauri-apps/api/event";
 
     let ready = $state(false);
     let isTauri = $state(false);
@@ -40,6 +43,21 @@
             }
         });
 
+        // listen for queue updates
+        const unlistenQueueFn = await listen<{
+            queue: any[];
+            active_count: number;
+            pending_count: number;
+            completed_count: number;
+        }>("queue-update", (event) => {
+            queue.set(event.payload.queue);
+            queueStats.set({
+                active: event.payload.active_count,
+                pending: event.payload.pending_count,
+                completed: event.payload.completed_count,
+            });
+        });
+
         // load initial data once backend is ready
         try {
             const [contestData, cachedData, configData] = await Promise.all([
@@ -52,16 +70,24 @@
             cached.set(new Set(cachedData));
             config.set(configData);
             loading.set({ contests: false, cache: false });
+
+            // load initial queue state
+            const queueResult = await commands.getQueue();
+            if (queueResult.status === "ok") {
+                queue.set(queueResult.data);
+            }
         } catch (e) {
             console.error("Failed to load initial data:", e);
         }
 
         ready = true;
+
+        // cleanup
+        return () => {
+            unlistenQueueFn();
+        };
     });
 
-    onDestroy(() => {
-        if (unlistenFn) unlistenFn();
-    });
 </script>
 
 <svelte:head>
