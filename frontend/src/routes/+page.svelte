@@ -12,6 +12,7 @@
     } from "$lib/stores/contests";
     import ContestTable from "$lib/components/ContestTable.svelte";
     import FilterPanel from "$lib/components/FilterPanel.svelte";
+    import DownloadQueue from "$lib/components/DownloadQueue.svelte";
     import icon from "$lib/icons/icon.png";
     import { APP_VERSION } from "$lib/version";
     import { startDragging, getPlatform } from "$lib/tauri";
@@ -252,3 +253,6 @@
         </div>
     </footer>
 </div>
+
+<!-- download queue (fixed position) -->
+<DownloadQueue />
