@@ -19,6 +19,11 @@ fn main() {
                 uil_dl_lib::commands::open_downloads_folder,
                 uil_dl_lib::commands::rebuild_cache,
                 uil_dl_lib::commands::open_url,
+                uil_dl_lib::commands::add_to_queue,
+                uil_dl_lib::commands::remove_from_queue,
+                uil_dl_lib::commands::retry_failed,
+                uil_dl_lib::commands::clear_completed,
+                uil_dl_lib::commands::get_queue,
             ])
             .events(collect_events![
                 uil_dl_lib::bindings::LoadingProgressEvent,
@@ -26,10 +31,10 @@ fn main() {
                 uil_dl_lib::bindings::ErrorEvent,
             ]);
 
-        // generate typescript bindings
+        // generate typescript bindings with bigint support
         builder
             .export(
-                specta_typescript::Typescript::default(),
+                specta_typescript::Typescript::default().bigint(specta_typescript::BigIntExportBehavior::Number),
                 "../src/lib/bindings.ts",
             )
             .expect("failed to export typescript bindings");

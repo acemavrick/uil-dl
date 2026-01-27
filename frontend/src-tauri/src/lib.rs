@@ -1,13 +1,16 @@
 pub mod bindings;
 pub mod commands;
+mod download;
 mod info;
 pub mod models;
+mod queue;
 mod state;
 
 use models::{LoadingProgress, RawInfo};
 use state::{AppState, CacheIndex};
 use std::path::PathBuf;
 use std::sync::Arc;
+use queue::start_queue_processor;
 use tauri::{Emitter, Manager, RunEvent,
     utils::config::WebviewUrl,
     webview::WebviewWindowBuilder,
@@ -63,6 +66,9 @@ pub fn run() {
             let handle = app.handle().clone();
             let state = app.state::<Arc<AppState>>().inner().clone();
 
+            // start queue processor
+            start_queue_processor(handle.clone(), state.clone());
+
             // async initialization
             tauri::async_runtime::spawn(async move {
                 initialize_app(handle, state).await;
@@ -81,6 +87,11 @@ pub fn run() {
             commands::open_downloads_folder,
             commands::rebuild_cache,
             commands::open_url,
+            commands::add_to_queue,
+            commands::remove_from_queue,
+            commands::retry_failed,
+            commands::clear_completed,
+            commands::get_queue,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
