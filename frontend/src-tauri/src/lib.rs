@@ -1,6 +1,7 @@
-mod commands;
+pub mod bindings;
+pub mod commands;
 mod info;
-mod models;
+pub mod models;
 mod state;
 
 use models::{LoadingProgress, RawInfo};

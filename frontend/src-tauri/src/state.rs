@@ -1,7 +1,6 @@
 use crate::models::{Contest, QueueItem, UserConfig};
 use std::collections::HashSet;
 use std::path::PathBuf;
-use std::sync::Arc;
 use tokio::sync::RwLock;
 
 // shared application state

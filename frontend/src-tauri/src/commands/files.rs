@@ -3,6 +3,7 @@ use std::sync::Arc;
 use tauri::State;
 
 #[tauri::command]
+#[specta::specta]
 pub async fn open_file(state: State<'_, Arc<AppState>>, id: String) -> Result<(), String> {
     let parts: Vec<&str> = id.split('_').collect();
     if parts.len() != 2 {
@@ -35,6 +36,7 @@ pub async fn open_file(state: State<'_, Arc<AppState>>, id: String) -> Result<()
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn open_downloads_folder(state: State<'_, Arc<AppState>>) -> Result<(), String> {
     let config = state.config.read().await;
     let path = std::path::Path::new(&config.download_dir);
@@ -48,6 +50,7 @@ pub async fn open_downloads_folder(state: State<'_, Arc<AppState>>) -> Result<()
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn rebuild_cache(state: State<'_, Arc<AppState>>) -> Result<usize, String> {
     let contests = state.contests.read().await;
     let mut cache = state.cache.write().await;
@@ -56,6 +59,7 @@ pub async fn rebuild_cache(state: State<'_, Arc<AppState>>) -> Result<usize, Str
 }
 
 #[tauri::command]
+#[specta::specta]
 pub fn open_url(url: String) -> Result<(), String> {
     opener::open_browser(&url).map_err(|e| format!("Failed to open URL: {}", e))
 }

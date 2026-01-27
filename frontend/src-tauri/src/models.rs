@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use specta::Type;
 use std::collections::HashMap;
 
 // raw info.json format from UIL website
@@ -13,7 +14,7 @@ pub struct RawInfo {
 }
 
 // contest with assigned ID for IPC
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub struct Contest {
     pub id: u32,
     pub subject: String,
@@ -26,7 +27,7 @@ pub struct Contest {
 }
 
 // user preferences
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub struct UserConfig {
     pub download_dir: String,
     pub dev_mode: bool,
@@ -47,7 +48,7 @@ impl Default for UserConfig {
 }
 
 // loading progress event payload
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Type)]
 pub struct LoadingProgress {
     pub stage: String,
     pub done: bool,
@@ -56,7 +57,7 @@ pub struct LoadingProgress {
 }
 
 // queue item for downloads
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub struct QueueItem {
     pub id: String, // "{contest_id}_{type}" e.g. "42_pdf"
     pub contest_id: u32,
@@ -67,7 +68,7 @@ pub struct QueueItem {
     pub retries: u32,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Type)]
 #[serde(rename_all = "lowercase")]
 pub enum QueueStatus {
     Pending,
@@ -77,14 +78,14 @@ pub enum QueueStatus {
     Cancelled,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub struct DownloadProgress {
     pub bytes: u64,
     pub total: Option<u64>,
 }
 
 // queue update event payload
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Type)]
 pub struct QueueUpdate {
     pub queue: Vec<QueueItem>,
     pub active_count: usize,
@@ -93,7 +94,7 @@ pub struct QueueUpdate {
 }
 
 // request to add items to queue
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Type)]
 pub struct QueueRequest {
     pub contest_id: u32,
     pub file_type: String,
