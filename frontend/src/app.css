@@ -1,3 +1,26 @@
 @import 'tailwindcss';
 @plugin '@tailwindcss/forms';
 @plugin '@tailwindcss/typography';
+
+::-webkit-scrollbar {
+    display: none;
+}
+
+html {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+.selectable {
+    -webkit-user-select: text;
+    user-select: text;
+}
