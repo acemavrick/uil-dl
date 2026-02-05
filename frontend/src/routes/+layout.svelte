@@ -1,6 +1,6 @@
 <script lang="ts">
     import "../app.css";
-    import { onMount } from "svelte";
+    import { onMount, type Snippet } from "svelte";
     import { contests, loading } from "$lib/stores/contests";
     import { cached } from "$lib/stores/cache";
     import { config } from "$lib/stores/config";
@@ -13,6 +13,8 @@
     } from "$lib/tauri";
     import { commands } from "$lib/bindings";
     import { listen } from "@tauri-apps/api/event";
+
+    let { children }: { children: Snippet } = $props();
 
     let ready = $state(false);
     let isTauri = $state(false);
@@ -115,5 +117,5 @@
         </div>
     </div>
 {:else}
-    <slot />
+    {@render children()}
 {/if}
