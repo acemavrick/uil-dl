@@ -85,7 +85,7 @@
             <div class="px-5 py-4 space-y-5">
                 <!-- download location -->
                 <div class="space-y-2">
-                    <label class="text-sm font-medium text-text-primary">Download Location</label>
+                    <span class="text-sm font-medium text-text-primary">Download Location</span>
                     <div class="flex items-center gap-2">
                         <div class="flex-1 px-3 py-1.5 text-sm text-text-secondary bg-surface-base border border-surface-border rounded-lg truncate selectable">
                             {$config.download_dir || "Not set"}
@@ -119,6 +119,7 @@
                             onclick={() => fuzzyEnabled.update(v => !v)}
                             class="relative w-9 h-5 rounded-full transition-colors
                                 {$fuzzyEnabled ? 'bg-gold-500' : 'bg-surface-border'}"
+                            title="Toggle fuzzy search"
                         >
                             <span class="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform
                                 {$fuzzyEnabled ? 'translate-x-4' : ''}"
@@ -136,6 +137,7 @@
                             onclick={toggleDevMode}
                             class="relative w-9 h-5 rounded-full transition-colors
                                 {$config.dev_mode ? 'bg-gold-500' : 'bg-surface-border'}"
+                            title="Toggle developer mode"
                         >
                             <span class="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform
                                 {$config.dev_mode ? 'translate-x-4' : ''}"
