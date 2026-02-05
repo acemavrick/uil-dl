@@ -47,9 +47,9 @@
     }
 </script>
 
-<div class="flex-shrink-0 px-5 py-3 space-y-2">
+<div class="flex-shrink-0 px-5 py-3 space-y-2.5 border-b border-surface-border">
     <!-- dropdown row -->
-    <div class="flex items-center gap-2">
+    <div class="flex items-center gap-2.5">
         <FilterDropdown label="Subject" options={$subjects} selected={selectedSubjects} />
         <FilterDropdown label="Level" options={$levels} selected={selectedLevels} />
         <FilterDropdown label="Year" options={$years} selected={selectedYears} />

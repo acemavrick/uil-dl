@@ -1,7 +1,7 @@
 import { writable, derived } from 'svelte/store';
 import Fuse from 'fuse.js';
 import type { Contest } from '$lib/tauri';
-import { searchQuery, fuzzyEnabled } from './search';
+import { searchQuery, searchMode, caseSensitive } from './search';
 
 export const contests = writable<Contest[]>([]);
 export const loading = writable({ contests: true, cache: true });
@@ -44,26 +44,41 @@ const dropdownFiltered = derived(
 
 // final filtered list: dropdown filters → search
 export const filteredContests = derived(
-    [dropdownFiltered, searchQuery, fuzzyEnabled],
-    ([$filtered, $query, $fuzzy]) => {
+    [dropdownFiltered, searchQuery, searchMode, caseSensitive],
+    ([$filtered, $query, $mode, $caseSensitive]) => {
         const q = $query.trim();
         if (!q) return $filtered;
 
-        if ($fuzzy) {
+        if ($mode === 'fuzzy') {
             const fuse = new Fuse($filtered, {
                 keys: ['subject', 'level', { name: 'year', weight: 0.5 }],
                 threshold: 0.4,
                 ignoreLocation: true,
+                isCaseSensitive: $caseSensitive,
             });
             return fuse.search(q).map(r => r.item);
         }
 
+        if ($mode === 'regex') {
+            try {
+                const flags = $caseSensitive ? '' : 'i';
+                const re = new RegExp(q, flags);
+                return $filtered.filter(c =>
+                    re.test(c.subject) || re.test(c.level) || re.test(String(c.year))
+                );
+            } catch {
+                // invalid regex, return all
+                return $filtered;
+            }
+        }
+
         // exact substring match
-        const lower = q.toLowerCase();
+        const normalize = (s: string) => $caseSensitive ? s : s.toLowerCase();
+        const needle = normalize(q);
         return $filtered.filter(c =>
-            c.subject.toLowerCase().includes(lower) ||
-            c.level.toLowerCase().includes(lower) ||
-            String(c.year).includes(lower)
+            normalize(c.subject).includes(needle) ||
+            normalize(c.level).includes(needle) ||
+            String(c.year).includes(needle)
         );
     }
 );

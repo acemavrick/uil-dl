@@ -3,8 +3,10 @@ pub mod commands;
 mod download;
 mod info;
 pub mod models;
+mod network;
 mod queue;
 mod state;
+mod user_config;
 
 use models::{LoadingProgress, RawInfo};
 use state::{AppState, CacheIndex};
@@ -23,6 +25,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_os::init())
+        .plugin(tauri_plugin_dialog::init())
         .plugin(
             tauri_plugin_log::Builder::default()
                 .level(log::LevelFilter::Info)
@@ -42,8 +45,7 @@ pub fn run() {
                 "main",
                 WebviewUrl::default() // use devURL in dev, frontendDist in prod
             )
-            .title_bar_style(tauri::TitleBarStyle::Overlay)
-            .title("")
+            .title("UIL-DL")
             .inner_size(1000.0, 700.0)
             .min_inner_size(600.0, 400.0)
             .resizable(true)
@@ -92,6 +94,10 @@ pub fn run() {
             commands::retry_failed,
             commands::clear_completed,
             commands::get_queue,
+            commands::refresh_info,
+            commands::check_for_updates,
+            commands::get_network_status,
+            commands::check_connectivity,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
@@ -119,7 +125,8 @@ async fn initialize_app(handle: tauri::AppHandle, state: Arc<AppState>) {
         },
     );
 
-    let config = models::UserConfig::default();
+    // load config from disk
+    let config = user_config::load_config();
     let downloads_dir = PathBuf::from(&config.download_dir);
 
     // ensure downloads directory exists

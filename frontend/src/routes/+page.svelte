@@ -14,7 +14,6 @@
     import SearchBar from "$lib/components/SearchBar.svelte";
     import ContestTable from "$lib/components/ContestTable.svelte";
     import ActionBar from "$lib/components/ActionBar.svelte";
-    import QueuePanel from "$lib/components/QueuePanel.svelte";
     import SettingsModal from "$lib/components/SettingsModal.svelte";
 
     let showSettings = $state(false);
@@ -54,5 +53,4 @@
     <ActionBar />
 </div>
 
-<QueuePanel />
 <SettingsModal open={showSettings} onClose={() => (showSettings = false)} />

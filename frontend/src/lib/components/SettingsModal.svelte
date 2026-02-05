@@ -1,6 +1,5 @@
 <script lang="ts">
     import { config } from "$lib/stores/config";
-    import { fuzzyEnabled } from "$lib/stores/search";
     import { cached } from "$lib/stores/cache";
     import { commands } from "$lib/bindings";
     import { APP_VERSION } from "$lib/version";
@@ -16,7 +15,6 @@
     let cacheCount = $derived($cached.size);
 
     async function changeDownloadDir() {
-        // uses native file picker via tauri dialog
         const { open: openDialog } = await import("@tauri-apps/plugin-dialog");
         const selected = await openDialog({ directory: true, multiple: false });
         if (selected) {
@@ -31,21 +29,10 @@
         await commands.openDownloadsFolder();
     }
 
-    async function toggleDevMode() {
-        const next = !$config.dev_mode;
-        const result = await commands.setDevMode(next);
-        if (result.status === "ok") {
-            config.update((c) => ({ ...c, dev_mode: next }));
-        }
-    }
-
     async function rebuildCache() {
         rebuildingCache = true;
         try {
-            const result = await commands.rebuildCache();
-            if (result.status === "ok") {
-                // cache will be refreshed from the backend
-            }
+            await commands.rebuildCache();
         } finally {
             rebuildingCache = false;
         }
@@ -66,10 +53,8 @@
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <div class="fixed inset-0 z-50 flex items-center justify-center">
-        <!-- backdrop -->
         <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick={onClose}></div>
 
-        <!-- modal -->
         <div class="relative bg-surface-elevated border border-surface-border rounded-xl w-[420px] shadow-2xl overflow-hidden">
             <!-- header -->
             <div class="flex items-center justify-between px-5 py-4 border-b border-surface-border">
@@ -102,48 +87,6 @@
                     >
                         Change location
                     </button>
-                </div>
-
-                <!-- divider -->
-                <div class="border-t border-surface-border"></div>
-
-                <!-- toggles -->
-                <div class="space-y-3">
-                    <!-- fuzzy search -->
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <div class="text-sm text-text-primary">Fuzzy search</div>
-                            <div class="text-xs text-text-secondary">approximate matching in search bar</div>
-                        </div>
-                        <button
-                            onclick={() => fuzzyEnabled.update(v => !v)}
-                            class="relative w-9 h-5 rounded-full transition-colors
-                                {$fuzzyEnabled ? 'bg-gold-500' : 'bg-surface-border'}"
-                            title="Toggle fuzzy search"
-                        >
-                            <span class="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform
-                                {$fuzzyEnabled ? 'translate-x-4' : ''}"
-                            ></span>
-                        </button>
-                    </div>
-
-                    <!-- dev mode -->
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <div class="text-sm text-text-primary">Developer mode</div>
-                            <div class="text-xs text-text-secondary">extra logging & debug info</div>
-                        </div>
-                        <button
-                            onclick={toggleDevMode}
-                            class="relative w-9 h-5 rounded-full transition-colors
-                                {$config.dev_mode ? 'bg-gold-500' : 'bg-surface-border'}"
-                            title="Toggle developer mode"
-                        >
-                            <span class="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform
-                                {$config.dev_mode ? 'translate-x-4' : ''}"
-                            ></span>
-                        </button>
-                    </div>
                 </div>
 
                 <!-- divider -->

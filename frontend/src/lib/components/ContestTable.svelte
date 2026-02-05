@@ -2,6 +2,7 @@
     import type { Readable } from "svelte/store";
     import type { Contest } from "$lib/tauri";
     import { selectedItems, toggleRow, selectAll, selectAllColumn } from "$lib/stores/selection";
+    import { commands } from "$lib/bindings";
     import FileCell from "./FileCell.svelte";
     import LevelCell from "./LevelCell.svelte";
 
@@ -105,9 +106,15 @@
 {:else}
     <table class="w-full text-sm">
         <thead class="sticky top-0 z-10 bg-surface-elevated border-b border-surface-border">
+            <!-- count row -->
+            <tr class="border-b border-surface-border/50">
+                <th colspan="7" class="px-4 py-1.5 text-left">
+                    <span class="text-xs text-text-secondary font-normal">{sortedData.length} contest{sortedData.length !== 1 ? 's' : ''}</span>
+                </th>
+            </tr>
             <tr>
                 <!-- master checkbox -->
-                <th class="w-10 px-3 py-2.5 text-left">
+                <th class="w-10 px-4 py-2.5 text-left">
                     <button
                         onclick={() => selectAll($data)}
                         class="w-4 h-4 rounded border flex items-center justify-center transition-colors
@@ -126,7 +133,7 @@
                 </th>
 
                 <!-- sortable columns -->
-                <th class="px-3 py-2.5 text-left">
+                <th class="px-4 py-2.5 text-left">
                     <button onclick={() => toggleSort("subject")} class="flex items-center gap-1 text-text-secondary hover:text-text-primary transition-colors font-medium">
                         Subject
                         {#if sortKey === "subject"}
@@ -134,7 +141,7 @@
                         {/if}
                     </button>
                 </th>
-                <th class="w-32 px-3 py-2.5 text-left">
+                <th class="w-36 px-4 py-2.5 text-left">
                     <button onclick={() => toggleSort("level")} class="flex items-center gap-1 text-text-secondary hover:text-text-primary transition-colors font-medium">
                         Level
                         {#if sortKey === "level"}
@@ -142,7 +149,7 @@
                         {/if}
                     </button>
                 </th>
-                <th class="w-20 px-3 py-2.5 text-left">
+                <th class="w-20 px-4 py-2.5 text-left">
                     <button onclick={() => toggleSort("year")} class="flex items-center gap-1 text-text-secondary hover:text-text-primary transition-colors font-medium">
                         Year
                         {#if sortKey === "year"}
@@ -152,7 +159,7 @@
                 </th>
 
                 <!-- file column headers with select-all -->
-                <th class="w-20 px-3 py-2.5 text-center">
+                <th class="w-20 px-2 py-2.5 text-center">
                     <div class="flex flex-col items-center gap-1">
                         <span class="text-text-secondary font-medium text-xs">PDF</span>
                         <button
@@ -172,7 +179,7 @@
                         </button>
                     </div>
                 </th>
-                <th class="w-20 px-3 py-2.5 text-center">
+                <th class="w-20 px-2 py-2.5 text-center">
                     <div class="flex flex-col items-center gap-1">
                         <span class="text-text-secondary font-medium text-xs">ZIP</span>
                         <button
@@ -192,6 +199,10 @@
                         </button>
                     </div>
                 </th>
+                <!-- other link (no select-all, just a header) -->
+                <th class="w-10 px-2 py-2.5 text-center">
+                    <span class="text-text-secondary font-medium text-[10px]">Other</span>
+                </th>
             </tr>
         </thead>
 
@@ -202,7 +213,7 @@
                 <tr class="border-b border-surface-border/50 transition-colors
                     {isSelected ? 'bg-gold-500/[0.06]' : 'hover:bg-surface-elevated/60'}">
                     <!-- row checkbox -->
-                    <td class="px-3 py-2">
+                    <td class="px-4 py-2.5">
                         <button
                             onclick={() => toggleRow(contest.id, [
                                 ...(contest.pdf_link ? ["pdf"] : []),
@@ -223,16 +234,31 @@
                         </button>
                     </td>
 
-                    <td class="px-3 py-2 text-text-primary">{contest.subject}</td>
-                    <td class="px-3 py-2">
+                    <td class="px-4 py-2.5 text-text-primary">{contest.subject}</td>
+                    <td class="px-4 py-2.5">
                         <LevelCell level={contest.level} gradient={true} />
                     </td>
-                    <td class="px-3 py-2 text-text-secondary tabular-nums">{contest.year}</td>
-                    <td class="px-3 py-2 text-center">
+                    <td class="px-4 py-2.5 text-text-secondary tabular-nums">{contest.year}</td>
+                    <td class="px-2 py-2.5 text-center">
                         <FileCell contestId={contest.id} fileType="pdf" link={contest.pdf_link} />
                     </td>
-                    <td class="px-3 py-2 text-center">
+                    <td class="px-2 py-2.5 text-center">
                         <FileCell contestId={contest.id} fileType="zip" link={contest.zip_link} />
+                    </td>
+                    <td class="px-2 py-2.5 text-center">
+                        {#if contest.other_link}
+                            <button
+                                onclick={() => commands.openUrl(contest.other_link!)}
+                                class="p-0.5 rounded text-text-secondary hover:text-slate-blue-400 transition-colors"
+                                title="Open in browser"
+                            >
+                                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                </svg>
+                            </button>
+                        {:else}
+                            <span class="text-text-secondary/30">—</span>
+                        {/if}
                     </td>
                 </tr>
             {/each}
