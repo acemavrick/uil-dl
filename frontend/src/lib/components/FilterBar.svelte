@@ -2,6 +2,7 @@
     import type { Readable, Writable } from "svelte/store";
     import FilterDropdown from "./FilterDropdown.svelte";
     import FilterChip from "./FilterChip.svelte";
+    import { downloadFilter, type DownloadFilter } from "$lib/stores/contests";
 
     interface Props {
         subjects: Readable<string[]>;
@@ -21,17 +22,28 @@
         selectedYears,
     }: Props = $props();
 
+    const dlFilterOptions: { value: DownloadFilter; label: string }[] = [
+        { value: "any", label: "Any status" },
+        { value: "all", label: "Fully downloaded" },
+        { value: "some", label: "Any downloaded" },
+        { value: "pdf", label: "PDF downloaded" },
+        { value: "zip", label: "ZIP downloaded" },
+        { value: "none", label: "Not downloaded" },
+    ];
+
     // collect all active chips for display
     let hasFilters = $derived(
         $selectedSubjects.length > 0 ||
         $selectedLevels.length > 0 ||
-        $selectedYears.length > 0
+        $selectedYears.length > 0 ||
+        $downloadFilter !== "any"
     );
 
     function clearAll() {
         selectedSubjects.set([]);
         selectedLevels.set([]);
         selectedYears.set([]);
+        downloadFilter.set("any");
     }
 
     function removeSubject(s: string) {
@@ -53,6 +65,18 @@
         <FilterDropdown label="Subject" options={$subjects} selected={selectedSubjects} />
         <FilterDropdown label="Level" options={$levels} selected={selectedLevels} />
         <FilterDropdown label="Year" options={$years} selected={selectedYears} />
+
+        <!-- download status: simple select, not multi-select -->
+        <select
+            bind:value={$downloadFilter}
+            class="text-xs px-2.5 py-1.5 rounded-lg bg-surface-elevated border border-surface-border
+                text-text-secondary hover:text-text-primary transition-colors cursor-pointer
+                focus:outline-none focus:border-slate-blue-500/50"
+        >
+            {#each dlFilterOptions as opt}
+                <option value={opt.value}>{opt.label}</option>
+            {/each}
+        </select>
     </div>
 
     <!-- active filter chips -->
@@ -67,6 +91,12 @@
             {#each $selectedYears as y}
                 <FilterChip label={y} onRemove={() => removeYear(y)} />
             {/each}
+            {#if $downloadFilter !== "any"}
+                <FilterChip
+                    label={dlFilterOptions.find(o => o.value === $downloadFilter)?.label ?? ""}
+                    onRemove={() => downloadFilter.set("any")}
+                />
+            {/if}
 
             <button
                 onclick={clearAll}

@@ -6,5 +6,6 @@ export const queue = writable<QueueItem[]>([]);
 export const queueStats = writable({
     active: 0,
     pending: 0,
-    completed: 0
+    completed: 0,
 });
+export const queuePaused = writable(false);

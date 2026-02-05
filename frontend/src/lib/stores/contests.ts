@@ -1,7 +1,8 @@
 import { writable, derived } from 'svelte/store';
 import Fuse from 'fuse.js';
-import type { Contest } from '$lib/tauri';
+import type { Contest } from '$lib/bindings';
 import { searchQuery, searchMode, caseSensitive } from './search';
+import { cached } from './cache';
 
 export const contests = writable<Contest[]>([]);
 export const loading = writable({ contests: true, cache: true });
@@ -10,6 +11,12 @@ export const loading = writable({ contests: true, cache: true });
 export const selectedSubjects = writable<string[]>([]);
 export const selectedLevels = writable<string[]>([]);
 export const selectedYears = writable<string[]>([]);
+
+// download status filter
+// "any" = no filter, "all" = all available files downloaded,
+// "some" = at least one file downloaded, "pdf"/"zip" = specific type, "none" = nothing
+export type DownloadFilter = 'any' | 'all' | 'some' | 'pdf' | 'zip' | 'none';
+export const downloadFilter = writable<DownloadFilter>('any');
 
 // derived unique values for filter dropdowns
 export const subjects = derived(contests, ($contests) =>
@@ -26,7 +33,7 @@ export const years = derived(contests, ($contests) =>
     [...new Set($contests.map(c => c.year))].sort((a, b) => b - a).map(String)
 );
 
-// filtered by dropdowns first, then search
+// filtered by dropdowns first, then download status, then search
 const dropdownFiltered = derived(
     [contests, selectedSubjects, selectedLevels, selectedYears],
     ([$contests, $selectedSubjects, $selectedLevels, $selectedYears]) => {
@@ -42,9 +49,34 @@ const dropdownFiltered = derived(
     }
 );
 
-// final filtered list: dropdown filters → search
+// apply download status filter
+const downloadFiltered = derived(
+    [dropdownFiltered, downloadFilter, cached],
+    ([$filtered, $downloadFilter, $cached]) => {
+        if ($downloadFilter === 'any') return $filtered;
+
+        return $filtered.filter(c => {
+            const pdfDownloaded = c.pdf_link ? $cached.has(`${c.id}_pdf`) : null;
+            const zipDownloaded = c.zip_link ? $cached.has(`${c.id}_zip`) : null;
+            // "all available" = every file that exists is downloaded
+            const allDone = (pdfDownloaded ?? true) && (zipDownloaded ?? true);
+            const anyDone = (pdfDownloaded === true) || (zipDownloaded === true);
+
+            switch ($downloadFilter) {
+                case 'all': return allDone;
+                case 'some': return anyDone;
+                case 'pdf': return pdfDownloaded === true;
+                case 'zip': return zipDownloaded === true;
+                case 'none': return !anyDone;
+                default: return true;
+            }
+        });
+    }
+);
+
+// final filtered list: dropdown filters → download status → search
 export const filteredContests = derived(
-    [dropdownFiltered, searchQuery, searchMode, caseSensitive],
+    [downloadFiltered, searchQuery, searchMode, caseSensitive],
     ([$filtered, $query, $mode, $caseSensitive]) => {
         const q = $query.trim();
         if (!q) return $filtered;

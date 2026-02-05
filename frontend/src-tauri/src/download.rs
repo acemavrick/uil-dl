@@ -53,8 +53,15 @@ where
             .map_err(|e| DownloadError::Filesystem(format!("create parent dir: {}", e)))?;
     }
 
-    // start download
-    let response = reqwest::get(&options.url)
+    // start download (connect timeout only — no total timeout for large files)
+    let client = reqwest::Client::builder()
+        .connect_timeout(std::time::Duration::from_secs(15))
+        .build()
+        .map_err(|e| DownloadError::Network(format!("client error: {}", e)))?;
+
+    let response = client
+        .get(&options.url)
+        .send()
         .await
         .map_err(|e| DownloadError::Network(format!("request failed: {}", e)))?;
 

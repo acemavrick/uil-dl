@@ -1,5 +1,5 @@
 import { writable } from 'svelte/store';
-import type { UserConfig } from '$lib/tauri';
+import type { UserConfig } from '$lib/bindings';
 
 export const config = writable<UserConfig>({
     download_dir: '',

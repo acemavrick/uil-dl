@@ -32,7 +32,10 @@
     async function rebuildCache() {
         rebuildingCache = true;
         try {
-            await commands.rebuildCache();
+            const result = await commands.rebuildCache();
+            if (result.status === "ok") {
+                cached.set(new Set(result.data));
+            }
         } finally {
             rebuildingCache = false;
         }

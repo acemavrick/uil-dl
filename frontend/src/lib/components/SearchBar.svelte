@@ -1,8 +1,11 @@
 <script lang="ts">
+    import { onDestroy } from "svelte";
     import { searchQuery, searchMode, caseSensitive, type SearchMode } from "$lib/stores/search";
 
     let localQuery = $state("");
     let debounceTimer: ReturnType<typeof setTimeout>;
+
+    onDestroy(() => clearTimeout(debounceTimer));
 
     function handleInput() {
         clearTimeout(debounceTimer);

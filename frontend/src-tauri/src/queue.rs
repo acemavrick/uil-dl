@@ -7,8 +7,8 @@ use std::time::Duration;
 use tauri::{AppHandle, Emitter};
 use tokio::time::sleep;
 
-const MAX_CONCURRENT: usize = 3;
-const START_DELAY_MS: u64 = 500;
+const MAX_CONCURRENT: usize = 4;
+const START_DELAY_MS: u64 = 150;
 const MAX_RETRIES: u32 = 4;
 const RATE_LIMIT_BACKOFF_SECS: u64 = 60;
 const RETRY_DELAYS: [Duration; 4] = [
@@ -29,8 +29,10 @@ async fn queue_processor_loop(app_handle: AppHandle, state: Arc<AppState>) {
     let semaphore = Arc::new(tokio::sync::Semaphore::new(MAX_CONCURRENT));
 
     loop {
-        // check for pending items
-        let next_item = {
+        // skip picking up new items when paused
+        let next_item = if state.is_queue_paused() {
+            None
+        } else {
             let mut queue = state.queue.write().await;
             queue.iter_mut().find_map(|item| {
                 if item.status == QueueStatus::Pending {
@@ -242,6 +244,7 @@ pub async fn emit_queue_update(app_handle: &AppHandle, state: &Arc<AppState>) {
         active_count,
         pending_count,
         completed_count,
+        paused: state.is_queue_paused(),
     };
 
     let _ = app_handle.emit("queue-update", update);

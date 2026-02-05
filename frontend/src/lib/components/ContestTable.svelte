@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { Readable } from "svelte/store";
-    import type { Contest } from "$lib/tauri";
+    import type { Contest } from "$lib/bindings";
     import { selectedItems, toggleRow, selectAll, selectAllColumn } from "$lib/stores/selection";
     import { commands } from "$lib/bindings";
     import FileCell from "./FileCell.svelte";

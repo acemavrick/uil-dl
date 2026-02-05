@@ -187,3 +187,4 @@ data/db.sqlite
 *.ai
 */release/*
 */ignored/*
+.claude/

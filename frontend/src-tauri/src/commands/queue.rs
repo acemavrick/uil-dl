@@ -102,3 +102,21 @@ pub async fn get_queue(state: State<'_, Arc<AppState>>) -> Result<Vec<QueueItem>
     let queue = state.queue.read().await;
     Ok(queue.clone())
 }
+
+#[tauri::command]
+#[specta::specta]
+pub async fn set_queue_paused(
+    app_handle: AppHandle,
+    state: State<'_, Arc<AppState>>,
+    paused: bool,
+) -> Result<(), String> {
+    state.set_queue_paused(paused);
+    emit_queue_update(&app_handle, &state).await;
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn get_queue_paused(state: State<'_, Arc<AppState>>) -> Result<bool, String> {
+    Ok(state.is_queue_paused())
+}

@@ -24,6 +24,12 @@ fn main() {
                 uil_dl_lib::commands::retry_failed,
                 uil_dl_lib::commands::clear_completed,
                 uil_dl_lib::commands::get_queue,
+                uil_dl_lib::commands::set_queue_paused,
+                uil_dl_lib::commands::get_queue_paused,
+                uil_dl_lib::commands::refresh_info,
+                uil_dl_lib::commands::check_for_updates,
+                uil_dl_lib::commands::get_network_status,
+                uil_dl_lib::commands::check_connectivity,
             ])
             .events(collect_events![
                 uil_dl_lib::bindings::LoadingProgressEvent,

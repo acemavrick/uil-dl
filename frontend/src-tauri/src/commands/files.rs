@@ -49,13 +49,14 @@ pub async fn open_downloads_folder(state: State<'_, Arc<AppState>>) -> Result<()
     opener::open(path).map_err(|e| format!("Failed to open folder: {}", e))
 }
 
+/// rescan downloads folder — returns the new set of cached IDs
 #[tauri::command]
 #[specta::specta]
-pub async fn rebuild_cache(state: State<'_, Arc<AppState>>) -> Result<usize, String> {
+pub async fn rebuild_cache(state: State<'_, Arc<AppState>>) -> Result<Vec<String>, String> {
     let contests = state.contests.read().await;
     let mut cache = state.cache.write().await;
     cache.rebuild(&contests);
-    Ok(cache.count())
+    Ok(cache.downloaded.iter().cloned().collect())
 }
 
 #[tauri::command]

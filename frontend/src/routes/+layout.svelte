@@ -1,17 +1,12 @@
 <script lang="ts">
     import "../app.css";
-    import { onMount, type Snippet } from "svelte";
+    import { onMount, onDestroy, type Snippet } from "svelte";
     import { contests, loading } from "$lib/stores/contests";
     import { cached } from "$lib/stores/cache";
     import { config } from "$lib/stores/config";
-    import { queue, queueStats } from "$lib/stores/queue";
-    import {
-        getContests,
-        getCached,
-        getConfig,
-        onLoadingProgress,
-    } from "$lib/tauri";
+    import { queue, queueStats, queuePaused } from "$lib/stores/queue";
     import { commands } from "$lib/bindings";
+    import type { LoadingProgressEvent, QueueUpdateEvent } from "$lib/bindings";
     import { listen } from "@tauri-apps/api/event";
 
     let { children }: { children: Snippet } = $props();
@@ -19,6 +14,10 @@
     let ready = $state(false);
     let isTauri = $state(false);
     let loadingMessage = $state("Starting...");
+
+    // event listener cleanup
+    let cleanups: (() => void)[] = [];
+    onDestroy(() => cleanups.forEach((fn) => fn()));
 
     onMount(async () => {
         isTauri = "__TAURI_INTERNALS__" in window;
@@ -32,55 +31,50 @@
         document.addEventListener("contextmenu", (e) => e.preventDefault());
 
         // listen for loading progress
-        await onLoadingProgress((progress) => {
-            if (progress.message) {
-                loadingMessage = progress.message;
-            }
-            if (progress.stage === "contests" && progress.done) {
-                loading.update((l) => ({ ...l, contests: false }));
-            }
-            if (progress.stage === "cache" && progress.done) {
-                loading.update((l) => ({ ...l, cache: false }));
+        const unlistenProgress = await listen<LoadingProgressEvent>("loading-progress", (e) => {
+            const p = e.payload;
+            if (p.message) loadingMessage = p.message;
+            if (p.stage === "contests" && p.done) loading.update((l) => ({ ...l, contests: false }));
+            if (p.stage === "cache" && p.done) loading.update((l) => ({ ...l, cache: false }));
+        });
+
+        // listen for queue updates + sync cached store
+        const unlistenQueue = await listen<QueueUpdateEvent>("queue-update", (e) => {
+            const p = e.payload;
+            queue.set(p.queue);
+            queueStats.set({ active: p.active_count, pending: p.pending_count, completed: p.completed_count });
+            queuePaused.set(p.paused);
+
+            // mark completed items in cache so they persist after queue clears
+            const done = p.queue.filter((q) => q.status === "complete");
+            if (done.length > 0) {
+                cached.update((c) => {
+                    const next = new Set(c);
+                    for (const item of done) next.add(`${item.contest_id}_${item.file_type}`);
+                    return next;
+                });
             }
         });
 
-        // listen for queue updates
-        await listen<{
-            queue: any[];
-            active_count: number;
-            pending_count: number;
-            completed_count: number;
-        }>("queue-update", (event) => {
-            queue.set(event.payload.queue);
-            queueStats.set({
-                active: event.payload.active_count,
-                pending: event.payload.pending_count,
-                completed: event.payload.completed_count,
-            });
-        });
-
-        // load initial data once backend is ready
+        // load initial data
         try {
-            const [contestData, cachedData, configData] = await Promise.all([
-                getContests(),
-                getCached(),
-                getConfig(),
+            const [contestResult, cachedResult, configResult, queueResult] = await Promise.all([
+                commands.getContests(),
+                commands.getCached(),
+                commands.getConfig(),
+                commands.getQueue(),
             ]);
 
-            contests.set(contestData);
-            cached.set(new Set(cachedData));
-            config.set(configData);
+            if (contestResult.status === "ok") contests.set(contestResult.data);
+            if (cachedResult.status === "ok") cached.set(new Set(cachedResult.data));
+            if (configResult.status === "ok") config.set(configResult.data);
+            if (queueResult.status === "ok") queue.set(queueResult.data);
             loading.set({ contests: false, cache: false });
-
-            // load initial queue state
-            const queueResult = await commands.getQueue();
-            if (queueResult.status === "ok") {
-                queue.set(queueResult.data);
-            }
         } catch (e) {
-            console.error("Failed to load initial data:", e);
+            console.error("failed to load initial data:", e);
         }
 
+        cleanups.push(unlistenProgress, unlistenQueue);
         ready = true;
     });
 </script>

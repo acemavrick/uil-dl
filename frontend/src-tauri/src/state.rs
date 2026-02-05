@@ -1,6 +1,8 @@
 use crate::models::{Contest, QueueItem, UserConfig};
+use crate::network::NetworkState;
 use std::collections::HashSet;
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
 use tokio::sync::RwLock;
 
 // shared application state
@@ -10,6 +12,8 @@ pub struct AppState {
     pub cache: RwLock<CacheIndex>,
     pub queue: RwLock<Vec<QueueItem>>,
     pub info_version: RwLock<u32>,
+    pub network_state: RwLock<NetworkState>,
+    pub queue_paused: AtomicBool,
 }
 
 impl AppState {
@@ -20,7 +24,17 @@ impl AppState {
             cache: RwLock::new(CacheIndex::new(PathBuf::new())),
             queue: RwLock::new(Vec::new()),
             info_version: RwLock::new(0),
+            network_state: RwLock::new(NetworkState::new()),
+            queue_paused: AtomicBool::new(false),
         }
+    }
+
+    pub fn is_queue_paused(&self) -> bool {
+        self.queue_paused.load(Ordering::Relaxed)
+    }
+
+    pub fn set_queue_paused(&self, paused: bool) {
+        self.queue_paused.store(paused, Ordering::Relaxed);
     }
 }
 

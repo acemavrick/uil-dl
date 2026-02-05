@@ -34,9 +34,13 @@ pub fn run() {
         .manage(Arc::new(AppState::new()))
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-                // hide window instead of closing
-                api.prevent_close();
-                let _ = window.hide();
+                // macOS convention: close hides, dock click restores
+                // other platforms: close actually quits
+                #[cfg(target_os = "macos")]
+                {
+                    api.prevent_close();
+                    let _ = window.hide();
+                }
             }
         })
         .setup(|app| {
@@ -46,6 +50,7 @@ pub fn run() {
                 WebviewUrl::default() // use devURL in dev, frontendDist in prod
             )
             .title("UIL-DL")
+            .theme(Some(tauri::Theme::Dark))
             .inner_size(1000.0, 700.0)
             .min_inner_size(600.0, 400.0)
             .resizable(true)
@@ -55,12 +60,12 @@ pub fn run() {
                 let allowed = matches!(url.scheme(), "tauri" | "asset")
                 || url.host_str() == Some("localhost")
                 || url.host_str() == Some("127.0.0.1");
-                
-                // for debug, REMOVE IN PRODUCTION
+
+                #[cfg(debug_assertions)]
                 if !allowed {
-                    log::warn!("Blocked navigation to {}", url);
+                    log::warn!("blocked navigation to {}", url);
                 }
-                
+
                 allowed
             })
             .build()?;
@@ -94,6 +99,8 @@ pub fn run() {
             commands::retry_failed,
             commands::clear_completed,
             commands::get_queue,
+            commands::set_queue_paused,
+            commands::get_queue_paused,
             commands::refresh_info,
             commands::check_for_updates,
             commands::get_network_status,

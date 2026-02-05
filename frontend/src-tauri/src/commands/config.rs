@@ -1,5 +1,6 @@
 use crate::models::UserConfig;
 use crate::state::AppState;
+use crate::user_config::save_config;
 use std::sync::Arc;
 use tauri::State;
 
@@ -21,13 +22,17 @@ pub async fn set_download_dir(
     // validate path
     if !path_buf.exists() {
         std::fs::create_dir_all(&path_buf)
-            .map_err(|e| format!("Failed to create directory: {}", e))?;
+            .map_err(|e| format!("failed to create directory: {}", e))?;
     }
 
-    let mut config = state.config.write().await;
-    config.download_dir = path;
+    // update + persist config, then drop the lock before rebuilding cache
+    {
+        let mut config = state.config.write().await;
+        config.download_dir = path;
+        save_config(&config)?;
+    }
 
-    // rebuild cache for new directory
+    // rebuild cache for new directory (separate lock scope)
     let contests = state.contests.read().await;
     let mut cache = state.cache.write().await;
     cache.downloads_dir = path_buf;
@@ -41,5 +46,9 @@ pub async fn set_download_dir(
 pub async fn set_dev_mode(state: State<'_, Arc<AppState>>, enabled: bool) -> Result<(), String> {
     let mut config = state.config.write().await;
     config.dev_mode = enabled;
+
+    // persist to disk
+    save_config(&config)?;
+
     Ok(())
 }

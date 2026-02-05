@@ -21,6 +21,7 @@ pub struct QueueUpdateEvent {
     pub active_count: usize,
     pub pending_count: usize,
     pub completed_count: usize,
+    pub paused: bool,
 }
 
 #[derive(Debug, Clone, serde::Serialize, Type, Event)]

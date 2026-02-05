@@ -1,6 +1,7 @@
 <script lang="ts">
     import { selectedItems, toggleFile } from "$lib/stores/selection";
     import { queue } from "$lib/stores/queue";
+    import { cached } from "$lib/stores/cache";
     import { commands } from "$lib/bindings";
 
     interface Props {
@@ -17,12 +18,14 @@
     );
 
     let isSelected = $derived($selectedItems.get(contestId)?.has(fileType) ?? false);
+    let isCachedFile = $derived($cached.has(`${contestId}_${fileType}`));
 
-    // queue-based status
+    // priority: unavailable → queue status → cached → selection/available
     let status = $derived.by(() => {
         if (!link) return "unavailable" as const;
-        if (!queueItem) return isSelected ? "selected" as const : "available" as const;
-        return queueItem.status as "pending" | "downloading" | "complete" | "failed";
+        if (queueItem) return queueItem.status as "pending" | "downloading" | "complete" | "failed";
+        if (isCachedFile) return "downloaded" as const;
+        return isSelected ? "selected" as const : "available" as const;
     });
 
     let progress = $derived.by(() => {
@@ -46,12 +49,17 @@
     </span>
 {:else if status === "pending"}
     <span class="text-xs text-text-secondary">pending</span>
-{:else if status === "complete"}
-    <span class="text-xs text-text-secondary/60">
-        <svg class="w-3.5 h-3.5 inline text-text-secondary/50" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+{:else if status === "complete" || status === "downloaded"}
+    <!-- downloaded checkmark — click to open file -->
+    <button
+        onclick={() => commands.openFile(`${contestId}_${fileType}`)}
+        class="text-text-secondary/50 hover:text-gold-400 transition-colors"
+        title="Open file"
+    >
+        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
         </svg>
-    </span>
+    </button>
 {:else if status === "failed"}
     <span class="text-xs text-vermillion-400 font-medium">failed</span>
 {:else}

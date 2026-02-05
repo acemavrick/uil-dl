@@ -69,7 +69,10 @@ async openDownloadsFolder() : Promise<Result<null, string>> {
     else return { status: "error", error: e  as any };
 }
 },
-async rebuildCache() : Promise<Result<number, string>> {
+/**
+ * rescan downloads folder — returns the new set of cached IDs
+ */
+async rebuildCache() : Promise<Result<string[], string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("rebuild_cache") };
 } catch (e) {
@@ -80,6 +83,94 @@ async rebuildCache() : Promise<Result<number, string>> {
 async openUrl(url: string) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("open_url", { url }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async addToQueue(items: QueueRequest[]) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("add_to_queue", { items }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async removeFromQueue(ids: string[]) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("remove_from_queue", { ids }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async retryFailed(ids: string[]) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("retry_failed", { ids }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async clearCompleted() : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("clear_completed") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getQueue() : Promise<Result<QueueItem[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_queue") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async setQueuePaused(paused: boolean) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("set_queue_paused", { paused }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getQueuePaused() : Promise<Result<boolean, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_queue_paused") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async refreshInfo() : Promise<Result<RefreshResult, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("refresh_info") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async checkForUpdates() : Promise<Result<boolean, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("check_for_updates") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getNetworkStatus() : Promise<Result<NetworkStatus, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_network_status") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async checkConnectivity() : Promise<Result<boolean, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("check_connectivity") };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -110,9 +201,12 @@ export type Contest = { id: number; subject: string; level: string; year: number
 export type DownloadProgress = { bytes: number; total: number | null }
 export type ErrorEvent = { message: string; details: string | null }
 export type LoadingProgressEvent = { stage: string; done: boolean; message: string | null; count: number | null }
+export type NetworkStatus = { online: boolean; last_error: string | null }
 export type QueueItem = { id: string; contest_id: number; file_type: string; status: QueueStatus; progress: DownloadProgress | null; error: string | null; retries: number }
+export type QueueRequest = { contest_id: number; file_type: string }
 export type QueueStatus = "pending" | "downloading" | "complete" | "failed" | "cancelled"
-export type QueueUpdateEvent = { queue: QueueItem[]; active_count: number; pending_count: number; completed_count: number }
+export type QueueUpdateEvent = { queue: QueueItem[]; active_count: number; pending_count: number; completed_count: number; paused: boolean }
+export type RefreshResult = { updated: boolean; version: number; message: string }
 export type UserConfig = { download_dir: string; dev_mode: boolean }
 
 /** tauri-specta globals **/
