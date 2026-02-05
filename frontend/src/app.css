@@ -1,26 +1,77 @@
 @import 'tailwindcss';
 @plugin '@tailwindcss/forms';
-@plugin '@tailwindcss/typography';
 
+@theme {
+	/* ── vermillion (primary action) ── */
+	--color-vermillion-50: #fef3f1;
+	--color-vermillion-100: #fde4df;
+	--color-vermillion-200: #fcc9bf;
+	--color-vermillion-300: #f6a292;
+	--color-vermillion-400: #e8816d;
+	--color-vermillion-500: #e06b56;
+	--color-vermillion-600: #c44d38;
+	--color-vermillion-700: #a53d2c;
+	--color-vermillion-800: #883528;
+	--color-vermillion-900: #6f3027;
+	--color-vermillion-950: #3d1610;
+
+	/* ── gold (selection / active) ── */
+	--color-gold-50: #fdf8ef;
+	--color-gold-100: #faecd4;
+	--color-gold-200: #f4d6a8;
+	--color-gold-300: #ecbc72;
+	--color-gold-400: #e0a44e;
+	--color-gold-500: #d4a04a;
+	--color-gold-600: #b87d30;
+	--color-gold-700: #995f2a;
+	--color-gold-800: #7d4c28;
+	--color-gold-900: #674024;
+	--color-gold-950: #3a2010;
+
+	/* ── slate blue (progress / info) ── */
+	--color-slate-blue-50: #f2f6fa;
+	--color-slate-blue-100: #e2eaf3;
+	--color-slate-blue-200: #ccdaea;
+	--color-slate-blue-300: #a8c1db;
+	--color-slate-blue-400: #8aabcc;
+	--color-slate-blue-500: #6b8db0;
+	--color-slate-blue-600: #5775a0;
+	--color-slate-blue-700: #495f82;
+	--color-slate-blue-800: #3f516b;
+	--color-slate-blue-900: #37455a;
+	--color-slate-blue-950: #242d3a;
+
+	/* ── surfaces (dark warm) ── */
+	--color-surface-base: #111318;
+	--color-surface-elevated: #1a1e24;
+	--color-surface-hover: #24292f;
+	--color-surface-border: #363d45;
+
+	/* ── text ── */
+	--color-text-primary: #e8e4e0;
+	--color-text-secondary: #8b8580;
+}
+
+/* ── global resets ── */
 ::-webkit-scrollbar {
-    display: none;
+	display: none;
 }
 
 html {
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-}
-
-html {
-    scroll-behavior: smooth;
+	scrollbar-width: none;
+	-ms-overflow-style: none;
+	scroll-behavior: smooth;
 }
 
 body {
-    -webkit-user-select: none;
-    user-select: none;
+	-webkit-user-select: none;
+	user-select: none;
+	background-color: var(--color-surface-base);
+	color: var(--color-text-primary);
+	font-family: system-ui, -apple-system, sans-serif;
 }
 
 .selectable {
-    -webkit-user-select: text;
-    user-select: text;
+	-webkit-user-select: text;
+	user-select: text;
 }
