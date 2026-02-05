@@ -9,6 +9,7 @@ pub enum DownloadError {
     Network(String),
     Filesystem(String),
     Verification(String),
+    RateLimited(Option<u64>), // optional retry-after seconds
 }
 
 impl std::fmt::Display for DownloadError {
@@ -17,6 +18,10 @@ impl std::fmt::Display for DownloadError {
             DownloadError::Network(e) => write!(f, "network error: {}", e),
             DownloadError::Filesystem(e) => write!(f, "filesystem error: {}", e),
             DownloadError::Verification(e) => write!(f, "verification error: {}", e),
+            DownloadError::RateLimited(secs) => match secs {
+                Some(s) => write!(f, "rate limited (retry after {}s)", s),
+                None => write!(f, "rate limited"),
+            },
         }
     }
 }
@@ -53,12 +58,18 @@ where
         .await
         .map_err(|e| DownloadError::Network(format!("request failed: {}", e)))?;
 
-    // check status
-    if !response.status().is_success() {
-        return Err(DownloadError::Network(format!(
-            "http status: {}",
-            response.status()
-        )));
+    // check status — detect rate limiting
+    let status = response.status();
+    if status == reqwest::StatusCode::TOO_MANY_REQUESTS || status == reqwest::StatusCode::SERVICE_UNAVAILABLE {
+        let retry_after = response
+            .headers()
+            .get("retry-after")
+            .and_then(|v| v.to_str().ok())
+            .and_then(|v| v.parse::<u64>().ok());
+        return Err(DownloadError::RateLimited(retry_after));
+    }
+    if !status.is_success() {
+        return Err(DownloadError::Network(format!("http status: {}", status)));
     }
 
     // get content length if available

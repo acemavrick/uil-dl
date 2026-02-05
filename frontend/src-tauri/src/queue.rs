@@ -7,9 +7,10 @@ use std::time::Duration;
 use tauri::{AppHandle, Emitter};
 use tokio::time::sleep;
 
-const MAX_CONCURRENT: usize = 4;
-const START_DELAY_MS: u64 = 100;
+const MAX_CONCURRENT: usize = 3;
+const START_DELAY_MS: u64 = 500;
 const MAX_RETRIES: u32 = 4;
+const RATE_LIMIT_BACKOFF_SECS: u64 = 60;
 const RETRY_DELAYS: [Duration; 4] = [
     Duration::from_secs(1),
     Duration::from_secs(3),
@@ -100,6 +101,7 @@ async fn download_with_retry(
     state: &Arc<AppState>,
     item: &mut QueueItem,
 ) -> Result<u64, String> {
+    use crate::network::is_network_error;
     // get contest and URL
     let (url, dest_path) = {
         let contests = state.contests.read().await;
@@ -162,25 +164,54 @@ async fn download_with_retry(
         match result {
             Ok(bytes) => return Ok(bytes),
             Err(e) => {
+                let error_str = e.to_string();
+                let is_rate_limited = matches!(e, crate::download::DownloadError::RateLimited(_));
+
                 log::warn!(
                     "download failed for {} (attempt {}/{}): {}",
                     item.id,
                     attempt + 1,
                     MAX_RETRIES + 1,
-                    e
+                    error_str
                 );
 
                 item.retries = attempt + 1;
 
-                // cleanup temp file
+                // update item error message in queue so frontend can show it
+                {
+                    let mut queue = state.queue.write().await;
+                    if let Some(q_item) = queue.iter_mut().find(|q| q.id == item.id) {
+                        if is_rate_limited {
+                            q_item.error = Some("rate limited — waiting".to_string());
+                        } else {
+                            q_item.error = Some(error_str.clone());
+                        }
+                    }
+                }
+                emit_queue_update(app_handle, state).await;
+
+                if is_network_error(&error_str) {
+                    let mut network = state.network_state.write().await;
+                    network.mark_offline(error_str.clone());
+                }
+
                 cleanup_temp_file(&dest_path).await;
 
-                // if not last attempt, wait before retry
                 if attempt < MAX_RETRIES {
-                    sleep(RETRY_DELAYS[attempt as usize]).await;
+                    if is_rate_limited {
+                        // rate limited: use retry-after header or default backoff
+                        let wait = if let crate::download::DownloadError::RateLimited(Some(secs)) = &e {
+                            Duration::from_secs(*secs)
+                        } else {
+                            Duration::from_secs(RATE_LIMIT_BACKOFF_SECS)
+                        };
+                        log::info!("rate limited, waiting {}s before retry", wait.as_secs());
+                        sleep(wait).await;
+                    } else {
+                        sleep(RETRY_DELAYS[attempt as usize]).await;
+                    }
                 } else {
-                    // max retries exceeded
-                    return Err(format!("max retries exceeded: {}", e));
+                    return Err(format!("max retries exceeded: {}", error_str));
                 }
             }
         }
@@ -189,7 +220,7 @@ async fn download_with_retry(
     Err("download failed".to_string())
 }
 
-async fn emit_queue_update(app_handle: &AppHandle, state: &Arc<AppState>) {
+pub async fn emit_queue_update(app_handle: &AppHandle, state: &Arc<AppState>) {
     let queue = state.queue.read().await;
     let queue_vec = queue.clone();
 
