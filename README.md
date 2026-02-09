@@ -1,44 +1,29 @@
-# UIL-DL Online
+# UIL-DL Desktop (v2.0.0)
 
-Lite version of UIL-DL hosted online.
-Online at: [https://uildl-app.randeria.dev](https://uildl-app.randeria.dev).
-
-<!-- ## Table of Contents
-
-- [UIL-DL Standalone *(v2.0 Beta 1)*](#uil-dl-standalone-v20-beta-1)
-  - [Table of Contents](#table-of-contents)
-  - [Overview](#overview)
-  - [Features](#features)
-  - [Installation](#installation)
-  - [Usage](#usage)
-    - [Downloading Materials](#downloading-materials)
-    - [File Types](#file-types)
-    - [Filtering \& Sorting](#filtering--sorting)
-    - [The Cache](#the-cache)
-    - [Settings](#settings)
-  - [Analytics](#analytics)
-  - [Contact](#contact)
-  - [Contributing](#contributing)
+![Hackatime Badge](https://hackatime-badge.hackclub.com/U093CSTTEDN/uil-dl)
 
 ## Overview
 
 UIL-DL (UIL Downloader) is a tool designed to simplify the process of downloading and managing UIL Academics contest materials.
 It provides a clean, intuitive interface for filtering and accessing contest files, with features like caching to optimize bandwidth usage and download speed.
 
+- [Detailed Writeup](https://randeria.dev/projects/uil-dl) (Personal Site)
+- [Devlog](https://flavortown.hackclub.com/projects/11950) (Flavortown 2026)
+
 ## Features
 
 - **Search and Filter**: Easily find contests by subject, level, and year
-- **Smart Caching**: Downloaded files are cached locally to avoid redundant downloads
 - **Concurrent Downloads**: Efficiently manage multiple downloads
 - **Responsive UI**: Clean and easy to use interface
 
-## Installation
+## Current Status
 
-You can find the latest versions and instructions for macOS and Windows in the [releases](https://github.com/acemavrick/uil-dl/releases) section.
+Version 2.0 is still under development, with a release expected by the end of February. If you still can't wait, you can check out the [online](https://uildl.randeria.dev/online) version or the latest v1 in the [releases](https://github.com/acemavrick/uil-dl/releases) section.
 
-If you're the type of person who would build from source, you may want to check out the [dev](https://github.com/acemavrick/uil-dl/tree/main) version instead.
+- The working app is located in the `frontend/` directory. Anything outside that
+is extra and won't be bundled in the final application.
 
-## Usage
+<!--## Usage
 
 ### Downloading Materials
 
@@ -108,6 +93,7 @@ If you find that the downloads offered by the tool do not match the website, ple
 Basic, anonymous analytics data is collected by default to help improve the application and understand feature usage patterns. The analytics are limited to functional events (like downloads and searches) and never include personal information or file contents. All analytics events are processed in `app.py` and can be viewed in the code.
 
 To disable analytics, go to the application support directory and delete the `ga4_csnt`. Do not delete the `ga4_cid` file; deleting that will cause analytics to be re-enabled.
+-->
 
 ## Contact
 
@@ -137,4 +123,4 @@ To contribute code:
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Submit a well-documented pull request -->
+4. Submit a well-documented pull request
