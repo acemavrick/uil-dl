@@ -55,7 +55,7 @@ logger.propagate = False
 # Configuration
 INTERACTIVE = True
 FORCE_REWRITE = False
-YEARS = range(2018, 2026)
+YEARS = range(2018, 2027)
 # YEARS = range(2022, 2023)
 BASE_URL = "https://www.uiltexas.org/academics/page/{year}-high-school-academic-study-materials"
 
@@ -109,7 +109,10 @@ def scrape_data():
                                 packet_url = link_node.attributes.get('href', '')
                         else:
                             first_link_node = li.css_first('a')
-                            fln_index = text.index(first_link_node.text(strip=True))
+                            try:
+                                fln_index = text.index(first_link_node.text(strip=True))
+                            except:
+                                continue
                             # even more hardcoding and assumptions =D
                             match fln_index:
                                 # switch whether first link is the first or second piece of text
